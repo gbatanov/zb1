@@ -10,19 +10,19 @@
 
 ## Прочая информация
 
-Detecting chip type... ESP32-H2
-Chip is ESP32-H2 (revision v0.1)
-Features: BLE, IEEE802.15.4
-Crystal is 32MHz
+Detecting chip type... ESP32-H2  
+Chip is ESP32-H2 (revision v0.1)  
+Features: BLE, IEEE802.15.4  
+Crystal is 32MHz  
 
-ZB1
-MAC: 74:4d:bd:ff:fe:63:71:47
-BASE MAC: 74:4d:bd:63:71:47
+ZB1  
+MAC: 74:4d:bd:ff:fe:63:71:47  
+BASE MAC: 74:4d:bd:63:71:47  
 MAC_EXT: ff:fe
 
-ZB2
-MAC: 74:4d:bd:ff:fe:63:82:17
-BASE MAC: 74:4d:bd:63:82:17
+ZB2  
+MAC: 74:4d:bd:ff:fe:63:82:17  
+BASE MAC: 74:4d:bd:63:82:17  
 
 
 ESP_ERROR_CHECK. Макрос ESP_ERROR_CHECK используется для тех же целей, что и assert, за исключением того, что ESP_ERROR_CHECK проверяет свое значение как esp_err_t, а не bool. Если аргумент ESP_ERROR_CHECK не равен ESP_OK, то в консоль печатается сообщение об ошибке, и вызывается abort().
