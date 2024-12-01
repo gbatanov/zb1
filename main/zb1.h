@@ -34,20 +34,21 @@ extern "C"
 #endif
     void get_current_state();
     void set_attribute();
+#ifndef V1
     void lcd_task(void *pvParameters);
+    void motion_cb(void *arg, void *usr_data);
+    void send_onoff_cmd(uint8_t endpoint, uint8_t state);
     void button_single_click_cb(void *arg, void *usr_data);
+#endif
     void register_buttons();
     void luster_control(void *arg, void *usr_data);
     void luster_control_remote(uint8_t);
     void coridor_light_control(uint8_t val);
     void hall_light_control(uint8_t val);
-    void motion_cb(void *arg, void *usr_data);
     void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct);
     esp_err_t zb_set_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message);
-    esp_err_t zb_read_attr_resp_handler(const esp_zb_zcl_cmd_read_attr_resp_message_t *message);
     esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id, const void *message);
     void esp_zb_task(void *pvParameters);
-    void send_onoff_cmd(uint8_t endpoint, uint8_t state);
     void update_attribute();
 #ifdef __cplusplus
 }

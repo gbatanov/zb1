@@ -13,9 +13,7 @@
 
 #include "zb1.h"
 
-extern int lcd_timeout;
-extern uint8_t screen_number;
-
+#ifndef V1
 // Обработчик кнопки BOOT (одиночный клик)
 // Только переключение экранов
 void button_single_click_cb(void *arg, void *usr_data)
@@ -30,10 +28,30 @@ void button_single_click_cb(void *arg, void *usr_data)
     }
 #endif
 }
-
+#endif
 // Регистрация кнопок
 void register_buttons()
 {
+    //  Выключатель люстры
+    button_config_t gpio_btn_cfg0 = {
+        .type = BUTTON_TYPE_GPIO,
+        .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,   // 500ms
+        .short_press_time = CONFIG_BUTTON_SHORT_PRESS_TIME_MS, // 180ms
+        .gpio_button_config = {
+            .gpio_num = GPIO_NUM_0, // выключатель люстры
+            .active_level = 0,
+        },
+    };
+    button_handle_t gpio_btn0 = iot_button_create(&gpio_btn_cfg0);
+    if (NULL == gpio_btn0)
+    {
+        ESP_LOGE("Button luster", "Button create failed");
+    }
+
+    iot_button_register_cb(gpio_btn0, BUTTON_LONG_PRESS_START, luster_control, NULL);
+    iot_button_register_cb(gpio_btn0, BUTTON_LONG_PRESS_UP, luster_control, NULL);
+
+#ifndef V1
     // Кнопка BOOT
     // create gpio button
     button_config_t gpio_btn_cfg = {
@@ -54,25 +72,6 @@ void register_buttons()
 
     iot_button_register_cb(gpio_btn9, BUTTON_SINGLE_CLICK, button_single_click_cb, NULL);
     //	iot_button_register_cb(gpio_btn, BUTTON_LONG_PRESS_START, button_long_press_cb, NULL);
-
-    //  Выключатель люстры
-    button_config_t gpio_btn_cfg0 = {
-        .type = BUTTON_TYPE_GPIO,
-        .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,   // 500ms
-        .short_press_time = CONFIG_BUTTON_SHORT_PRESS_TIME_MS, // 180ms
-        .gpio_button_config = {
-            .gpio_num = GPIO_NUM_0, // выключатель люстры
-            .active_level = 0,
-        },
-    };
-    button_handle_t gpio_btn0 = iot_button_create(&gpio_btn_cfg0);
-    if (NULL == gpio_btn0)
-    {
-        ESP_LOGE("Button luster", "Button create failed");
-    }
-
-    iot_button_register_cb(gpio_btn0, BUTTON_LONG_PRESS_START, luster_control, NULL);
-    iot_button_register_cb(gpio_btn0, BUTTON_LONG_PRESS_UP, luster_control, NULL);
 
     // Датчик освещенности
     button_config_t gpio_btn_cfg2 = {
@@ -112,5 +111,6 @@ void register_buttons()
     //  gpio_set_pull_mode(GPIO_NUM_1, GPIO_PULLUP_ONLY);
     iot_button_register_cb(gpio_btn3, BUTTON_LONG_PRESS_START, motion_cb, NULL);
     iot_button_register_cb(gpio_btn3, BUTTON_LONG_PRESS_UP, motion_cb, NULL);
-    // iot_button_register_cb(gpio_btn3, BUTTON_SINGLE_CLICK, motion_short_cb, NULL);
+// iot_button_register_cb(gpio_btn3, BUTTON_SINGLE_CLICK, motion_short_cb, NULL);
+#endif
 }
