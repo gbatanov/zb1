@@ -63,10 +63,8 @@ const unsigned char zigbee[] = {
 #ifdef USE_BMP280
 extern int16_t temperature;
 #endif
-extern int8_t luminocity;
-extern bool lum_change;
+
 extern bool motion_state;
-extern bool mot_change;
 extern int lcd_timeout;
 extern uint8_t screen_number;
 extern SSD1306_t ssd1306_dev;
@@ -132,22 +130,12 @@ void lcd_task(void *pvParameters)
             ssd1306_display_text(&ssd1306_dev, 4, temp_data_str, strlen(temp_data_str), false);
         }
 #endif
-        if (lum_change)
-        {
-            if (luminocity == 0)
-                ssd1306_display_text(&ssd1306_dev, 6, "Light", 5, false);
-            else if (luminocity == 1)
-                ssd1306_display_text(&ssd1306_dev, 6, "Dark ", 5, false);
-            lum_change = false;
-        }
-        if (mot_change)
-        {
-            if (motion_state)
-                ssd1306_display_text(&ssd1306_dev, 5, "Motion", strlen("No motion"), false);
-            else
-                ssd1306_display_text(&ssd1306_dev, 5, "No motion   ", strlen("No motion"), false);
-            mot_change = false;
-        }
+
+        if (motion_state)
+            ssd1306_display_text(&ssd1306_dev, 5, "Motion", strlen("No motion"), false);
+        else
+            ssd1306_display_text(&ssd1306_dev, 5, "No motion   ", strlen("No motion"), false);
+
         lcd_timeout = lcd_timeout - 1;
         if (lcd_timeout <= 0)
         {

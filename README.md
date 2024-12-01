@@ -4,6 +4,9 @@
 Включение одной лампы через выключатель, двух через датчики движения,  
 один встроенный, один внешний.
 
+В версии 2 попробовал сделать 4 эндпойнта. Но зигби часть не вытягивает.  
+Версию 4 делаю на 1 эндпойнте с использованием стандартного кластера Binary Output  
+для приема/передачи состояния реле.
 
 ## Прочая информация
 
@@ -11,9 +14,16 @@ Detecting chip type... ESP32-H2
 Chip is ESP32-H2 (revision v0.1)
 Features: BLE, IEEE802.15.4
 Crystal is 32MHz
+
+ZB1
 MAC: 74:4d:bd:ff:fe:63:71:47
 BASE MAC: 74:4d:bd:63:71:47
 MAC_EXT: ff:fe
+
+ZB2
+MAC: 74:4d:bd:ff:fe:63:82:17
+BASE MAC: 74:4d:bd:63:82:17
+
 
 ESP_ERROR_CHECK. Макрос ESP_ERROR_CHECK используется для тех же целей, что и assert, за исключением того, что ESP_ERROR_CHECK проверяет свое значение как esp_err_t, а не bool. Если аргумент ESP_ERROR_CHECK не равен ESP_OK, то в консоль печатается сообщение об ошибке, и вызывается abort().
 SP_ERROR_CHECK_WITHOUT_ABORT. Макрос ESP_ERROR_CHECK_WITHOUT_ABORT работает так же, как и ESP_ERROR_CHECK, за исключением того, что не вызывает abort().
@@ -59,3 +69,6 @@ esp_err_t gpio_set_level(gpio_num_t gpio_num, uint32_t level)
 Thus, you just need to set the attribute report callback using esp_zb_device_add_report_attr_cb. Currently, there isn't a context pointer in the parameters, so you'll need to handle that on your own.
 
 To send temperature readings, you'll need to send an attribute report request using esp_zb_zcl_report_attr_cmd_req. Please refer to the documentation to get more details on this API.
+
+ vTaskDelete( NULL )
+ 

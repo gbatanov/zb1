@@ -58,7 +58,7 @@ void register_buttons()
     //  Выключатель люстры
     button_config_t gpio_btn_cfg0 = {
         .type = BUTTON_TYPE_GPIO,
-        .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,                                // 500ms
+        .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,   // 500ms
         .short_press_time = CONFIG_BUTTON_SHORT_PRESS_TIME_MS, // 180ms
         .gpio_button_config = {
             .gpio_num = GPIO_NUM_0, // выключатель люстры
@@ -78,7 +78,7 @@ void register_buttons()
     button_config_t gpio_btn_cfg2 = {
         .type = BUTTON_TYPE_GPIO,
         .short_press_time = 180, // 180ms
-        .long_press_time = 1500,  // 1500ms
+        .long_press_time = 1500, // 1500ms
         .gpio_button_config = {
             .gpio_num = GPIO_NUM_2, // датчик на GPIO2
             .active_level = 0,
@@ -87,11 +87,11 @@ void register_buttons()
     button_handle_t gpio_btn2 = iot_button_create(&gpio_btn_cfg2);
     if (NULL == gpio_btn2)
     {
-        ESP_LOGE("Sensor luminocity", "Create failed");
+        ESP_LOGE("Sensor /(motion)", "Create failed");
     }
 
-    iot_button_register_cb(gpio_btn2, BUTTON_LONG_PRESS_START, luminocity_cb, NULL);
-    iot_button_register_cb(gpio_btn2, BUTTON_LONG_PRESS_UP, luminocity_cb, NULL);
+    iot_button_register_cb(gpio_btn2, BUTTON_LONG_PRESS_START, motion_cb, NULL);
+    iot_button_register_cb(gpio_btn2, BUTTON_LONG_PRESS_UP, motion_cb, NULL);
 
     // Датчик движения
     button_config_t gpio_btn_cfg3 = {
@@ -112,6 +112,5 @@ void register_buttons()
     //  gpio_set_pull_mode(GPIO_NUM_1, GPIO_PULLUP_ONLY);
     iot_button_register_cb(gpio_btn3, BUTTON_LONG_PRESS_START, motion_cb, NULL);
     iot_button_register_cb(gpio_btn3, BUTTON_LONG_PRESS_UP, motion_cb, NULL);
-   // iot_button_register_cb(gpio_btn3, BUTTON_SINGLE_CLICK, motion_short_cb, NULL);
- 
+    // iot_button_register_cb(gpio_btn3, BUTTON_SINGLE_CLICK, motion_short_cb, NULL);
 }
