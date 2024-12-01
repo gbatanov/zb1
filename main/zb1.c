@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.4.5
+// 2024 GSB zb1 v0.1.0
 //
 
 #define I2C_NUM I2C_NUM_0
