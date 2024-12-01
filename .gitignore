@@ -1,0 +1,4 @@
+build/
+*.old
+.vscode/*
+managed_components/*
