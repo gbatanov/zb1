@@ -13,8 +13,10 @@
 
 #include "zb1.h"
 
-static char manufacturer[16], model[16], firmware_version[16];
+
 static const char *TAG = "GSB_ZB_1";
+
+static char manufacturer[16], model[16], firmware_version[16];
 extern bool connected;
 #ifdef USE_BMP280
 extern int16_t temperature;
@@ -50,17 +52,18 @@ device_params_t client_params; // ??
 // Реальную отправку делать при изменении параметра сразу.
 void update_attribute()
 {
-    while (!all_actual)
+    while (true)
     {
         if (connected)
         {
-            get_current_state();
+//           if (!all_actual)
+                get_current_state();
             all_actual = true;
         }
 
-        vTaskDelay(30000 / portTICK_PERIOD_MS); // 1 раз в 30 секунд, на продакшене увеличу до минуты
+        vTaskDelay(60000 / portTICK_PERIOD_MS); // 1 раз в 60 секунд
     }
-    vTaskDelete(NULL);
+    //   vTaskDelete(NULL);
 }
 
 void set_attribute()
@@ -82,7 +85,7 @@ void set_attribute()
                                      &PresentValue,
                                      false);
         esp_zb_lock_release();
-        ESP_LOGI(TAG, "Set attribute");
+//        ESP_LOGI(TAG, "Set attribute");
 
         esp_zb_zcl_report_attr_cmd_t report_attr_cmd = {0};
         report_attr_cmd.address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT;
@@ -97,9 +100,9 @@ void set_attribute()
         esp_err_t err = esp_zb_zcl_report_attr_cmd_req(&report_attr_cmd);
         esp_zb_lock_release();
 
-        if (err == ESP_OK)
-            ESP_LOGI(TAG, "Reported success");
-        else
+        if (err != ESP_OK)
+ //           ESP_LOGI(TAG, "Reported success");
+ //      else
             ESP_LOGW(TAG, "Reporting error");
     }
 #endif
