@@ -250,7 +250,7 @@ esp_err_t zb_set_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *me
                 if ((value & 0x40) == 0x40)
                 { // прихожая подсветка
                     cmd = (value >> 2) & 0x01;
-                    luster_control_remote(value & 0x04);
+                hall_light_control(value & 0x04);
                 }
             }
         }

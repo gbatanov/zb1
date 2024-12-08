@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.1.3
+// 2024 GSB zb1 v0.1.5
 //
 
 #include "settings.h"
@@ -37,7 +37,10 @@ i2c_master_bus_handle_t bus_handle;
 #error Define ZB_ED_ROLE in idf.py menuconfig to compile light (End Device) source code.
 #endif
 
+#ifndef V1
 static const char *TAG = "GSB_ZB_1";
+#endif
+
 bool light_state = 0;   // светодиод на плате
 bool connected = false; // подключен ли Zigbee
 
@@ -183,45 +186,42 @@ void motion_cb(void *arg, void *usr_data)
 #endif
 
 // Управлением реле люстры с координатора
+// Люстра включается логической 1 
 void luster_control_remote(uint8_t cmd)
 {
     luster_state = (bool)(cmd);
     luster_state_act = true;
-    gpio_set_level(GPIO_NUM_12, (uint32_t)(1 - cmd)); //  Выводим его на GPIO12
+    gpio_set_level(GPIO_NUM_12, (uint32_t)cmd); //  Выводим его на GPIO12
     set_attribute();
-//    ESP_LOGI(TAG, "Реле люстры %s", luster_state ? "включено" : "выключено");
+    //   ESP_LOGI(TAG, "Реле люстры %s", luster_state ? "включено" : "выключено");
 }
 // Управлением реле люстры с кнопок
 void luster_control(void *arg, void *usr_data)
 {
-    luster_state = !luster_state; // Инвертируем текущее состояние
-    luster_state_act = true;
-    gpio_set_level(GPIO_NUM_12, (uint32_t)luster_state); //  Выводим его на GPIO12
-    set_attribute();
-//    ESP_LOGI(TAG, "Реле люстры %s", luster_state ? "выключено" : "включено");
+    old_state = (bool)gpio_get_level(GPIO_NUM_12);
+    new_state = !old_state; // Инвертируем текущее состояние
+    luster_control_remote((uint8_t)new_state);
 }
 // Управление реле дежурного света в коридоре
 // Включается с координатора по датчику движения в коридоре
-void coridor_light_control(uint8_t val)
+void coridor_light_control(uint8_t value)
 {
-    uint8_t value = 1 - val;                      // Включение нулем, поэтому инвертируем
     gpio_set_level(GPIO_NUM_13, (uint32_t)value); //  Выводим его на GPIO13
     coridor_state = (bool)value;
     coridor_state_act = true;
     set_attribute();
-//    ESP_LOGI(TAG, "Реле света в коридоре %s", coridor_state ? "выключено" : "включено");
+    //   ESP_LOGI(TAG, "Реле света в коридоре %s", coridor_state ? "включено" : "выключено");
 }
 
 // Управление реле дежурного света в прихожей
 // Включается по датчику движения в прихожей (V1)
-void hall_light_control(uint8_t val)
+void hall_light_control(uint8_t value)
 {
-    uint8_t value = 1 - val;                      // Включение нулем, поэтому инвертируем
     gpio_set_level(GPIO_NUM_14, (uint32_t)value); //  Выводим его на GPIO14
-    hall_state = (bool)val;
+    hall_state = (bool)value;
     hall_state_act = true;
     set_attribute();
-//   ESP_LOGI(TAG, "Реле света в прихожей %s", hall_state ? "выключено" : "включено");
+    //  ESP_LOGI(TAG, "Реле света в прихожей %s", hall_state ? "включено" : "выключено");
 }
 
 void app_main(void)
