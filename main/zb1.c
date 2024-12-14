@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.1.5
+// 2024 GSB zb1 v0.1.6
 //
 
 #include "settings.h"
@@ -198,8 +198,8 @@ void luster_control_remote(uint8_t cmd)
 // Управлением реле люстры с кнопок
 void luster_control(void *arg, void *usr_data)
 {
-    old_state = (bool)gpio_get_level(GPIO_NUM_12);
-    new_state = !old_state; // Инвертируем текущее состояние
+  bool  old_state = (bool)gpio_get_level(GPIO_NUM_12);
+  bool  new_state = !old_state; // Инвертируем текущее состояние
     luster_control_remote((uint8_t)new_state);
 }
 // Управление реле дежурного света в коридоре
