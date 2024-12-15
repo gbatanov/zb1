@@ -1,23 +1,22 @@
 dependencies:
   espressif/button:
-    component_hash: 5357a6a2c0c47fa67eb9a4dad8cbd78f848d05409b3557e49ec9948898655cfb
+    component_hash: dddfbf885283f0415391c9851e3df613f77f7a3dac60e766ddbebd912854bce2
     dependencies:
-    - name: idf
-      require: private
-      version: '>=4.0'
     - name: espressif/cmake_utilities
       registry_url: https://components.espressif.com
       require: private
       version: 0.*
+    - name: idf
+      require: private
+      version: '>=4.0'
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 3.4.0
+    version: 3.4.1
   espressif/cmake_utilities:
     component_hash: 351350613ceafba240b761b4ea991e0f231ac7a9f59a9ee901f751bddc0bb18f
     dependencies:
     - name: idf
-      registry_url: https://components.espressif.com
       require: private
       version: '>=4.1'
     source:
@@ -25,7 +24,7 @@ dependencies:
       type: service
     version: 0.5.3
   espressif/esp-zboss-lib:
-    component_hash: fad683f7e04366398b61c0eea6e6517d4fe7ec4112407e26743dc80bafc0dcdc
+    component_hash: 470b2745685a0f2261e4499c54fecadac4d10e75bd58bd5bfa2588c74bfae9e1
     dependencies:
     - name: idf
       require: private
@@ -33,9 +32,9 @@ dependencies:
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 1.6.0
+    version: 1.6.1
   espressif/esp-zigbee-lib:
-    component_hash: 0026979f590d7f2b07f433bb0fd031a12b0c2cc0eec8584b59cb6e567d5afd82
+    component_hash: 88f4684a7c5551a6edf5bffbf0e87739b694946976e24fb253d95c357ce4b512
     dependencies:
     - name: idf
       require: private
@@ -43,7 +42,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com/
       type: service
-    version: 1.6.0
+    version: 1.6.1
   espressif/led_strip:
     component_hash: f907c58f722c58ab8545366668cfd8769cefb7d97a631a14e9d16234cc72bdff
     dependencies:
@@ -57,13 +56,13 @@ dependencies:
   idf:
     source:
       type: idf
-    version: 5.3.1
+    version: 5.3.2
 direct_dependencies:
 - espressif/button
 - espressif/esp-zboss-lib
 - espressif/esp-zigbee-lib
 - espressif/led_strip
 - idf
-manifest_hash: 76afa5ff96497c85f790174826b3ee440bc9bdcf355a58e7f8457bab11916c41
+manifest_hash: 44356d2fb6e9cd99fa1ec99a6aeafad485ab68ed92b026af6e9f33c656c998eb
 target: esp32h2
 version: 2.0.0
