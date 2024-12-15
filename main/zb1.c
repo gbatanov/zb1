@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.1.7
+// 2024 GSB zb1 v0.1.8
 //
 
 #include "settings.h"
@@ -14,6 +14,10 @@
 #include "ha/esp_zigbee_ha_standard.h"
 #include "iot_button.h"
 #include "driver/gpio.h" // для использования пинов на ввод/вывод
+
+#ifdef USE_TEMP_CHIP
+#include "temp_chip.h"
+#endif
 
 #ifdef USE_I2C
 #define I2C_NUM I2C_NUM_0
@@ -192,14 +196,16 @@ void luster_control_remote(uint8_t cmd)
     luster_state = (bool)(cmd);
     luster_state_act = true;
     gpio_set_level(GPIO_NUM_12, (uint32_t)cmd); //  Выводим его на GPIO12
+#ifdef USE_ZIGBEE
     set_attribute();
+#endif
     //   ESP_LOGI(TAG, "Реле люстры %s", luster_state ? "включено" : "выключено");
 }
 // Управлением реле люстры с кнопок
 void luster_control(void *arg, void *usr_data)
 {
-  bool  old_state = (bool)gpio_get_level(GPIO_NUM_12);
-  bool  new_state = !old_state; // Инвертируем текущее состояние
+    bool old_state = (bool)gpio_get_level(GPIO_NUM_12);
+    bool new_state = !old_state; // Инвертируем текущее состояние
     luster_control_remote((uint8_t)new_state);
 }
 // Управление реле дежурного света в коридоре
@@ -209,7 +215,9 @@ void coridor_light_control(uint8_t value)
     gpio_set_level(GPIO_NUM_13, (uint32_t)value); //  Выводим его на GPIO13
     coridor_state = (bool)value;
     coridor_state_act = true;
+#ifdef USE_ZIGBEE
     set_attribute();
+#endif
     //   ESP_LOGI(TAG, "Реле света в коридоре %s", coridor_state ? "включено" : "выключено");
 }
 
@@ -220,7 +228,9 @@ void hall_light_control(uint8_t value)
     gpio_set_level(GPIO_NUM_14, (uint32_t)value); //  Выводим его на GPIO14
     hall_state = (bool)value;
     hall_state_act = true;
+#ifdef USE_ZIGBEE
     set_attribute();
+#endif
     //  ESP_LOGI(TAG, "Реле света в прихожей %s", hall_state ? "включено" : "выключено");
 }
 
@@ -256,6 +266,9 @@ void app_main(void)
 #endif
 #ifdef USE_BMP280
     xTaskCreate(bmx280_task, "bmx280_task", 4096, NULL, 3, NULL);
+#endif
+#ifdef USE_TEMP_CHIP
+    xTaskCreate(temp_chip_task, "temp_chip_task", 4096, NULL, 3, NULL);
 #endif
     light_driver_init(LIGHT_DEFAULT_ON);
     light_driver_set_green(45);

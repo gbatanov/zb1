@@ -5,5 +5,6 @@ idf_component_register(
     "onoff.c"
     "display.c"
     "zigbee.c"
+    "temp_chip.c"
     INCLUDE_DIRS  "../components"
 )

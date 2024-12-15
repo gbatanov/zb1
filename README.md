@@ -15,13 +15,11 @@ Crystal is 32MHz
 
 ZB1  
 MAC: 74:4d:bd:ff:fe:63:71:47  
-BASE MAC: 74:4d:bd:63:71:47  
-MAC_EXT: ff:fe
 
 ZB2  
-MAC: 74:4d:bd:ff:fe:63:82:17  
-BASE MAC: 74:4d:bd:63:82:17  
+MAC: 74:4d:bd:ff:fe:63:82:17   
 
+Реле включаются подачей логической 1 на вывод.
 
 ESP_ERROR_CHECK. Макрос ESP_ERROR_CHECK используется для тех же целей, что и assert, за исключением того, что ESP_ERROR_CHECK проверяет свое значение как esp_err_t, а не bool. Если аргумент ESP_ERROR_CHECK не равен ESP_OK, то в консоль печатается сообщение об ошибке, и вызывается abort().
 SP_ERROR_CHECK_WITHOUT_ABORT. Макрос ESP_ERROR_CHECK_WITHOUT_ABORT работает так же, как и ESP_ERROR_CHECK, за исключением того, что не вызывает abort().

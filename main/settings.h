@@ -1,18 +1,19 @@
-#define USE_ZIGBEE
+//#define USE_ZIGBEE
 
-#define V1
+//#define V1
+#define USE_TEMP_CHIP
 
 // #define USE_BMP280
-#define USE_DISPLAY
+//#define USE_DISPLAY
 
-#ifdef V1
+//#ifdef V1
 #ifdef USE_BMP280
 #undef USE_BMP280
 #endif
 #ifdef USE_DISPLAY
 #undef USE_DISPLAY
 #endif
-#endif
+//#endif
 
 #ifdef USE_DISPLAY
 #ifndef USE_I2C

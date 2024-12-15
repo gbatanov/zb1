@@ -50,6 +50,7 @@ extern "C"
     esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id, const void *message);
     void esp_zb_task(void *pvParameters);
     void update_attribute();
+
 #ifdef __cplusplus
 }
 #endif
