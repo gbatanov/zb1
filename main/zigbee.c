@@ -302,7 +302,7 @@ void esp_zb_task(void *pvParameters)
     esp_zb_attribute_list_t *esp_zb_identify_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_IDENTIFY);
     esp_zb_identify_cluster_add_attr(esp_zb_identify_cluster, ESP_ZB_ZCL_CMD_IDENTIFY_IDENTIFY_ID, &identyfi_id);
 
-#ifdef USE_BMP280
+#if defined USE_TEMP_CHIP || defined USE_BMP280
     // Temperature cluster
     int16_t undefined_value, value_min, value_max;
     undefined_value = 0x8000;

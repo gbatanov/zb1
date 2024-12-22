@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.1.8
+// 2024 GSB zb1 v0.1.9
 //
 
 #include "settings.h"
@@ -14,6 +14,7 @@
 #include "ha/esp_zigbee_ha_standard.h"
 #include "iot_button.h"
 #include "driver/gpio.h" // для использования пинов на ввод/вывод
+#include "rom/gpio.h"
 
 #ifdef USE_TEMP_CHIP
 #include "temp_chip.h"
@@ -68,6 +69,8 @@ SSD1306_t ssd1306_dev;
 
 #ifdef USE_BMP280
 BMP280_t bmp280_dev;
+#endif
+#if defined USE_BMP280 || defined USE_TEMP_CHIP
 int16_t temperature = -100;
 float temp = 0;
 bool temp_change = false;
@@ -198,14 +201,14 @@ void luster_control_remote(uint8_t cmd)
     gpio_set_level(GPIO_NUM_12, (uint32_t)cmd); //  Выводим его на GPIO12
 #ifdef USE_ZIGBEE
     set_attribute();
+#else
+    ESP_LOGI(TAG, "Реле люстры %s", luster_state ? "включено" : "выключено");
 #endif
-    //   ESP_LOGI(TAG, "Реле люстры %s", luster_state ? "включено" : "выключено");
 }
 // Управлением реле люстры с кнопок
 void luster_control(void *arg, void *usr_data)
 {
-    bool old_state = (bool)gpio_get_level(GPIO_NUM_12);
-    bool new_state = !old_state; // Инвертируем текущее состояние
+    bool new_state = !luster_state;
     luster_control_remote((uint8_t)new_state);
 }
 // Управление реле дежурного света в коридоре
@@ -256,8 +259,11 @@ void app_main(void)
     xTaskCreate(update_attribute, "Update_attribute_value", 4096, NULL, 5, NULL);
 
 #endif
+    gpio_pad_select_gpio(GPIO_NUM_12);
     gpio_set_direction(GPIO_NUM_12, GPIO_MODE_OUTPUT); // GPIO12 - на Реле1 Люстра
+    gpio_pad_select_gpio(GPIO_NUM_13);
     gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT); // GPIO13 - на Реле2 Коридор
+    gpio_pad_select_gpio(GPIO_NUM_14);
     gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT); // GPIO14 - на Реле3 Прихожая
 
 // xTaskCreate(TaskFunction, NameFunction, StackDepth, void* Parameters, Priority, TaskHandle)

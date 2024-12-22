@@ -35,7 +35,7 @@ void register_buttons()
     //  Выключатель люстры
     button_config_t gpio_btn_cfg0 = {
         .type = BUTTON_TYPE_GPIO,
-        .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,   // 500ms
+        .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,   // 1500ms
         .short_press_time = CONFIG_BUTTON_SHORT_PRESS_TIME_MS, // 180ms
         .gpio_button_config = {
             .gpio_num = GPIO_NUM_0, // выключатель люстры

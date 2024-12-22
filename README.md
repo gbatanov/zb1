@@ -32,39 +32,22 @@ ESP_RETURN_ON_FALSE. Макрос ESP_RETURN_ON_FALSE проверяет усл�
 
 ESP_GOTO_ON_FALSE. Макрос ESP_GOTO_ON_FALSE проверяет условие, и если оно не равно true, то печатает сообщение, установит локальную переменную ret в предоставленный err_code, и затем выполнит переход по метке goto_tag.
 
-
-    Autostart mode: It initializes, load some parameters from NVRAM and proceed with startup. 
-    Startup means either Formation (for ZC), rejoin or discovery/association join. After startup complete,
-    No-autostart mode: It initializes scheduler and buffers pool, but not MAC and upper layers. 
-    Notifies the application that Zigbee framework (scheduler, buffer pool, etc.) has started, 
-    but no join/rejoin/formation/BDB initialization has been done yet. 
-    Typically esp_zb_start with no_autostart mode is used when application wants to do something before starting joining the network.
-
-   For example, you can use this function if it is needed to enable leds, timers or any other devices on periphery to work with them before starting working in a network. 
-   It's also useful if you want to run something locally during joining.
-   Precondition: stack must be initialized by Zigbee stack is not looped in this routine. 
-   Instead, it schedules callback and returns. Caller must run esp_zb_main_loop_iteration() after this routine.
-   Application should later call Zigbee commissioning initiation - for instance, esp_zb_bdb_start_top_level_commissioning().
-
- В одном эндпойнте может быть несколько кластеров.
-
+В одном эндпойнте может быть несколько разных кластеров.
 
 Пины:
 https://docs.espressif.com/projects/esp-idf/en/v5.3.1/esp32/api-reference/peripherals/gpio.html
 
-Установка направления ввода/вывода пина
+Установка направления ввода/вывода пина  
 esp_err_t gpio_set_direction(gpio_num_t gpio_num, gpio_mode_t mode)
-GPIO_MODE_INPUT GPIO_MODE_OUTPUT ...
+GPIO_MODE_INPUT  
+GPIO_MODE_OUTPUT ...
 
-Чтение пина, настроенного на ввод
- int gpio_get_level(gpio_num_t gpio_num)
+Чтение пина, настроенного на ввод  
+int gpio_get_level(gpio_num_t gpio_num)
 
-Вывод в пин, настроенный на вывод
+Вывод в пин, настроенный на вывод  
 esp_err_t gpio_set_level(gpio_num_t gpio_num, uint32_t level)
 
-Thus, you just need to set the attribute report callback using esp_zb_device_add_report_attr_cb. Currently, there isn't a context pointer in the parameters, so you'll need to handle that on your own.
-
-To send temperature readings, you'll need to send an attribute report request using esp_zb_zcl_report_attr_cmd_req. Please refer to the documentation to get more details on this API.
-
- vTaskDelete( NULL )
+Завершение задачи самой задачей:  
+vTaskDelete( NULL )
  
