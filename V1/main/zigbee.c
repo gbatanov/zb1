@@ -13,30 +13,22 @@
 
 #include "zb1.h"
 
-
 static const char *TAG = "GSB_ZB_1";
 
 static char manufacturer[16], model[16], firmware_version[16];
 extern bool connected;
-#ifdef USE_BMP280
-extern int16_t temperature;
-#endif
 
-#ifdef USE_DISPLAY
-extern int lcd_timeout;
-extern uint8_t screen_number;
-#endif
 extern bool light_state;
 extern bool all_actual;
-extern bool luster_state;      // bit 1
 extern bool coridor_state;     // bit 2
 extern bool hall_state;        // bit 3
-extern bool motion_state;      // bit 4
-extern bool luster_state_act;  // реле люстры bit  5
 extern bool coridor_state_act; // реле света в коридоре bit  6
 extern bool hall_state_act;    // реле света в прихожей bit  7
-extern bool motion_state_act;  // датчик движения bit  8
 extern uint16_t PresentValue;
+#if defined USE_TEMP_CHIP
+extern uint16_t temperature;
+extern uint8_t temperature8;
+#endif
 
 typedef struct device_params_s
 {
@@ -46,8 +38,45 @@ typedef struct device_params_s
 } device_params_t;
 
 device_params_t client_params; // ??
+/*
+#if defined USE_TEMP_CHIP
+static void report_temperature()
+{
+#ifdef USE_ZIGBEE
+    if (connected)
+    {
 
-// Task for update attribute value
+        esp_zb_lock_acquire(portMAX_DELAY);
+        esp_zb_zcl_set_attribute_val(ZB1_ENDPOINT_1,
+                                     ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
+                                     ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+                                     ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID,
+                                     &temperature,
+                                     false);
+        esp_zb_lock_release();
+        //        ESP_LOGI(TAG, "Set attribute");
+
+        esp_zb_zcl_report_attr_cmd_t report_attr_cmd = {0};
+        report_attr_cmd.address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT;
+        report_attr_cmd.attributeID = ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID;
+        report_attr_cmd.direction = ESP_ZB_ZCL_CMD_DIRECTION_TO_CLI;
+        report_attr_cmd.clusterID = ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT;
+        report_attr_cmd.zcl_basic_cmd.src_endpoint = ZB1_ENDPOINT_1;
+        report_attr_cmd.zcl_basic_cmd.dst_addr_u.addr_short = 0;
+        report_attr_cmd.zcl_basic_cmd.dst_endpoint = 1;
+
+        esp_zb_lock_acquire(portMAX_DELAY);
+        esp_err_t err = esp_zb_zcl_report_attr_cmd_req(&report_attr_cmd);
+        esp_zb_lock_release();
+
+        if (err != ESP_OK)
+            ESP_LOGW(TAG, "Reporting error");
+    }
+#endif
+}
+#endif
+*/
+
 // Автоматически буду отправлять редко, чисто для информации
 // Реальную отправку делать при изменении параметра сразу.
 void update_attribute()
@@ -56,27 +85,31 @@ void update_attribute()
     {
         if (connected)
         {
-//           if (!all_actual)
-                get_current_state();
-            all_actual = true;
+            get_current_state();
+#ifdef USE_TEMP_CHIP
+            // report_temperature();
+#endif
         }
 
         vTaskDelay(60000 / portTICK_PERIOD_MS); // 1 раз в 60 секунд
     }
-    //   vTaskDelete(NULL);
 }
 
 void set_attribute()
 {
+
 #ifdef USE_ZIGBEE
     if (connected)
     {
-        PresentValue = motion_state_act << 7 | motion_state << 3 | hall_state_act << 6 | hall_state << 2 |
-                       coridor_state_act << 5 | coridor_state << 1 | luster_state_act << 4 | luster_state;
 
+        PresentValue = hall_state_act << 6 | hall_state << 2 | coridor_state_act << 5 | coridor_state << 1;
+#ifdef USE_TEMP_CHIP
+        PresentValue += temperature8 << 8;
+#endif
 #ifndef V1
         ESP_LOGI(TAG, "PresentValue 0x%04X", PresentValue);
 #endif
+
         esp_zb_lock_acquire(portMAX_DELAY);
         esp_zb_zcl_set_attribute_val(ZB1_ENDPOINT_1,
                                      ESP_ZB_ZCL_CLUSTER_ID_MULTI_VALUE,
@@ -85,7 +118,7 @@ void set_attribute()
                                      &PresentValue,
                                      false);
         esp_zb_lock_release();
-//        ESP_LOGI(TAG, "Set attribute");
+        //        ESP_LOGI(TAG, "Set attribute");
 
         esp_zb_zcl_report_attr_cmd_t report_attr_cmd = {0};
         report_attr_cmd.address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT;
@@ -101,31 +134,10 @@ void set_attribute()
         esp_zb_lock_release();
 
         if (err != ESP_OK)
- //           ESP_LOGI(TAG, "Reported success");
- //      else
             ESP_LOGW(TAG, "Reporting error");
     }
 #endif
 }
-
-#ifndef V1
-void send_onoff_cmd(uint8_t endpoint, uint8_t state)
-{
-
-    esp_zb_zcl_on_off_cmd_t cmd = {
-        .zcl_basic_cmd = {
-            .dst_addr_u.addr_short = 0x0000,
-            .dst_endpoint = 1, // Здесь должен быть номер эндпойнта координатора!
-            .src_endpoint = endpoint,
-        },
-        .address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT,
-        .on_off_cmd_id = state,
-    };
-    esp_zb_lock_acquire(portMAX_DELAY);
-    esp_zb_zcl_status_t res = esp_zb_zcl_on_off_cmd_req(&cmd);
-    esp_zb_lock_release();
-}
-#endif
 
 void set_zcl_string(char *buffer, char *value)
 {
@@ -238,10 +250,7 @@ esp_err_t zb_set_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *me
                 ESP_LOGI(TAG, "CurrentValue 0x%04x  sets to 0x%02x by coordinator", value16, value);
 #endif
                 uint8_t cmd = 0;
-                if ((value & 0x10) == 0x10)
-                { // коридор люстра
-                    luster_control_remote(value & 0x01);
-                }
+
                 if ((value & 0x20) == 0x20)
                 { // коридор подсветка
                     cmd = (value >> 1) & 0x01;
@@ -250,7 +259,7 @@ esp_err_t zb_set_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *me
                 if ((value & 0x40) == 0x40)
                 { // прихожая подсветка
                     cmd = (value >> 2) & 0x01;
-                hall_light_control(value & 0x04);
+                    hall_light_control(value & 0x04);
                 }
             }
         }
@@ -276,7 +285,7 @@ esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id, const 
     return ret;
 }
 
-// задача инициализации ZB
+// задача инициализации и запуска ZB
 void esp_zb_task(void *pvParameters)
 {
     // initialize Zigbee stack
@@ -301,34 +310,21 @@ void esp_zb_task(void *pvParameters)
     identyfi_id = 0;
     esp_zb_attribute_list_t *esp_zb_identify_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_IDENTIFY);
     esp_zb_identify_cluster_add_attr(esp_zb_identify_cluster, ESP_ZB_ZCL_CMD_IDENTIFY_IDENTIFY_ID, &identyfi_id);
-
-#if defined USE_TEMP_CHIP || defined USE_BMP280
-    // Temperature cluster
-    int16_t undefined_value, value_min, value_max;
-    undefined_value = 0x8000;
-    value_min = 0x954d;
-    value_max = 0x7ffe;
-    esp_zb_attribute_list_t *esp_zb_temperature_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT);
-    esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &undefined_value);
-    esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MIN_VALUE_ID, &value_min);
-    esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MAX_VALUE_ID, &value_max);
-#endif
-
-#ifndef V1
-    // OnOff cluster отправка команд состояния датчика движения
-    esp_zb_attribute_list_t *esp_zb_onoff_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_ON_OFF);
-    esp_zb_on_off_cluster_add_attr(esp_zb_onoff_cluster, 0, &luster_state);
-#endif
+    /*
+    #if defined USE_TEMP_CHIP
+        // Temperature cluster
+        int16_t undefined_value, value_min, value_max;
+        undefined_value = 0x8000;
+        value_min = 0x954d;
+        value_max = 0x7ffe;
+        esp_zb_attribute_list_t *esp_zb_temperature_meas_cluster = esp_zb_zcl_attr_list_create(ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT);
+        esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &undefined_value);
+        esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MIN_VALUE_ID, &value_min);
+        esp_zb_temperature_meas_cluster_add_attr(esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_MAX_VALUE_ID, &value_max);
+    #endif
+    */
     // MultiState Output Cluster
-    // 0x004A NumberOfStates uint16
-    // uint16_t NumberOfStates = 0xffff;
-    // 0x0051 OutOfService bool
     bool OutOfService = false;
-    // 0x0055 PresentValue uint16
-    //
-    // 0x006F StatusFlags map8
-    // uint8_t StatusFlags = 0;
-
     esp_zb_attribute_list_t *esp_zb_multistate_value_cluster = esp_zb_zcl_attr_list_create(
         ESP_ZB_ZCL_CLUSTER_ID_MULTI_VALUE);
     uint32_t application_type_value = ESP_ZB_ZCL_MV_SET_APP_TYPE_WITH_ID(0xffff, 0x111);
@@ -340,14 +336,12 @@ void esp_zb_task(void *pvParameters)
                                              ESP_ZB_ZCL_ATTR_MULTI_VALUE_DESCRIPTION_ID,
                                              desc);
 
-    //    esp_zb_multistate_value_cluster_add_attr(esp_zb_multi_value_cluster, 0x004A, &NumberOfStates);
     esp_zb_multistate_value_cluster_add_attr(esp_zb_multistate_value_cluster,
                                              ESP_ZB_ZCL_ATTR_MULTI_VALUE_OUT_OF_SERVICE_ID,
                                              &OutOfService);
     esp_zb_multistate_value_cluster_add_attr(esp_zb_multistate_value_cluster,
                                              ESP_ZB_ZCL_ATTR_MULTI_VALUE_PRESENT_VALUE_ID,
                                              &PresentValue);
-    // esp_zb_multistate_value_cluster_add_attr(esp_zb_multistate_value_cluster, 0x006F, &StatusFlags);
 
     // Объявление списка кластеров
     esp_zb_cluster_list_t *esp_zb_cluster_list = esp_zb_zcl_cluster_list_create();
@@ -357,14 +351,13 @@ void esp_zb_task(void *pvParameters)
     esp_zb_cluster_list_add_identify_cluster(esp_zb_cluster_list,
                                              esp_zb_identify_cluster,
                                              ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-#ifndef V1
-    esp_zb_cluster_list_add_on_off_cluster(esp_zb_cluster_list,
-                                           esp_zb_onoff_cluster,
-                                           ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-#endif
-#ifdef USE_BMP280
-    esp_zb_cluster_list_add_temperature_meas_cluster(esp_zb_cluster_list, esp_zb_temperature_meas_cluster, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
-#endif
+    /*
+    #ifdef USE_TEMP_CHIP
+    esp_zb_cluster_list_add_temperature_meas_cluster(esp_zb_cluster_list,
+                 esp_zb_temperature_meas_cluster,
+                 ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
+    #endif
+    */
     esp_zb_cluster_list_add_multistate_value_cluster(esp_zb_cluster_list,
                                                      esp_zb_multistate_value_cluster,
                                                      ESP_ZB_ZCL_CLUSTER_SERVER_ROLE);
@@ -416,6 +409,25 @@ void esp_zb_task(void *pvParameters)
     };
     esp_zb_zcl_update_reporting_info(&reporting_info1);
 
+    /*
+    #if defined USE_TEMP_CHIP
+        esp_zb_zcl_reporting_info_t reporting_info2 = {
+            .direction = ESP_ZB_ZCL_CMD_DIRECTION_TO_SRV,
+            .ep = ZB1_ENDPOINT_1,
+            .cluster_id = ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
+            .cluster_role = ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
+            .dst.profile_id = ESP_ZB_AF_HA_PROFILE_ID,
+            .u.send_info.min_interval = 1,
+            .u.send_info.max_interval = 0,
+            .u.send_info.def_min_interval = 1,
+            .u.send_info.def_max_interval = 0,
+            .u.send_info.delta.u16 = 50,
+            .attr_id = ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID,
+            .manuf_code = ESP_ZB_ZCL_ATTR_NON_MANUFACTURER_SPECIFIC,
+        };
+        esp_zb_zcl_update_reporting_info(&reporting_info2);
+    #endif
+    */
     // регистрация обработчика действий (входные команды от координатора)
     esp_zb_core_action_handler_register(zb_action_handler);
 

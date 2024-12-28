@@ -7,16 +7,12 @@
 // Zigbee configuration
 #define INSTALLCODE_POLICY_ENABLE false // enable the install code policy for security /
 #define ED_AGING_TIMEOUT ESP_ZB_ED_AGING_TIMEOUT_64MIN
-#define ED_KEEP_ALIVE 3000 // 10 second
-#define ZB1_ENDPOINT_1 1   // Коридор люстра - бит 1
-// #define ZB1_ENDPOINT_2 2                                                 // Коридор подсветка - бит 2
-// #define ZB1_ENDPOINT_3 3                                                 // Прихожая подсветка - бит 3
-// #define ZB1_ENDPOINT_4 4                                                 // Датчик движения - бит 4
-// #define ZB1_ENDPOINT_5 5                                                 // RGB  Led - только внутреннее управление
+#define ED_KEEP_ALIVE 3000                                               // 10 second
+#define ZB1_ENDPOINT_1 1                                                 //
 #define ESP_ZB_PRIMARY_CHANNEL_MASK ESP_ZB_TRANSCEIVER_ALL_CHANNELS_MASK // Zigbee primary channel mask
 #define MANUFACTURER_NAME "GSB"
 #define MODEL_NAME "ZB1"
-#define FIRMWARE_VERSION "v0.1.4"
+#define FIRMWARE_VERSION "v0.1.10"
 
 #define ESP_ZB_ZED_CONFIG()                               \
     {                                                     \
@@ -34,15 +30,7 @@ extern "C"
 #endif
     void get_current_state();
     void set_attribute();
-#ifndef V1
-    void lcd_task(void *pvParameters);
-    void motion_cb(void *arg, void *usr_data);
-    void send_onoff_cmd(uint8_t endpoint, uint8_t state);
-    void button_single_click_cb(void *arg, void *usr_data);
-#endif
-    void register_buttons();
-    void luster_control(void *arg, void *usr_data);
-    void luster_control_remote(uint8_t);
+
     void coridor_light_control(uint8_t val);
     void hall_light_control(uint8_t val);
     void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct);

@@ -1,4 +1,3 @@
-build/
-*.old
 managed_components/*
 .vscode/*
+build/*

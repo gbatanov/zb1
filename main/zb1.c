@@ -1,7 +1,5 @@
-// 2024 GSB zb1 v0.2.4
+// 2024 GSB zb1 v0.2.1
 //
-
-#define I2C_NUM I2C_NUM_0
 
 #include "settings.h"
 
@@ -16,8 +14,15 @@
 #include "ha/esp_zigbee_ha_standard.h"
 #include "iot_button.h"
 #include "driver/gpio.h" // для использования пинов на ввод/вывод
+#include "rom/gpio.h"
+
+#ifdef USE_TEMP_CHIP
+#include "temp_chip.h"
+#endif
 
 #ifdef USE_I2C
+#define I2C_NUM I2C_NUM_0
+
 #include "driver/i2c_master.h"
 SemaphoreHandle_t i2c_semaphore = NULL;
 i2c_master_bus_handle_t bus_handle;
@@ -37,28 +42,35 @@ i2c_master_bus_handle_t bus_handle;
 #error Define ZB_ED_ROLE in idf.py menuconfig to compile light (End Device) source code.
 #endif
 
+#ifndef V1
 static const char *TAG = "GSB_ZB_1";
-bool light_state = 0;    // светодиод на плате
-bool connected = false;  // подключен ли Zigbee
-int8_t luminocity = -1;  // датчик освещенности
-bool lum_change = false; // изменение состояния датчика освещенности
+#endif
 
-bool motion_state = false;  // датчик движения
-bool mot_change = false;    // изменение состояния датчика движения
-bool luster_state = false;  // реле люстры
-bool coridor_state = false; // реле света в коридоре
-bool hall_state = false;    // реле света в прихожей
+bool light_state = 0;   // светодиод на плате
+bool connected = false; // подключен ли Zigbee
 
-SemaphoreHandle_t motion_semaphore = NULL;
+bool luster_state = false;  // реле люстры bit 1
+bool coridor_state = false; // реле света в коридоре bit 2
+bool hall_state = false;    // реле света в прихожей bit 3
+bool motion_state = false;  // датчик движения bit 4
+
+// актуальность состояния
+bool all_actual = false;
+bool luster_state_act = false;  // реле люстры bit  5
+bool coridor_state_act = false; // реле света в коридоре bit  6
+bool hall_state_act = false;    // реле света в прихожей bit  7
+bool motion_state_act = false;  // датчик движения bit  8
+
+uint16_t PresentValue = 0; // итоговое значение для отправки аттрибута в координатор
 
 #ifdef USE_DISPLAY
-int lcd_timeout = 60;
-uint8_t screen_number = 0;
 SSD1306_t ssd1306_dev;
 #endif
 
 #ifdef USE_BMP280
 BMP280_t bmp280_dev;
+#endif
+#if defined USE_BMP280 || defined USE_TEMP_CHIP
 int16_t temperature = -100;
 float temp = 0;
 bool temp_change = false;
@@ -145,131 +157,84 @@ static void bmx280_task(void *pvParameters)
 }
 #endif
 
-// Получение уровня освещения
-// Это значение наружу не отдаем, используем только для принятия решения
-// включить или нет дежурный свет
-// TODO: закомментировать, ориентироваться на включение люстры
-void luminocity_cb(void *arg, void *usr_data)
+void get_current_state()
 {
-    // для тестов заменю датчик движения
-    motion_cb(arg, usr_data);
-    /*
-    int8_t lum = gpio_get_level(GPIO_NUM_2);
-    ESP_LOGI(TAG, "New luminicity %d", lum);
-    if (lum != luminocity)
-    {
-        lum_change = true;
-        luminocity = lum;
-    }
-    */
+    motion_state = (bool)gpio_get_level(GPIO_NUM_2);
+    luster_state = (bool)gpio_get_level(GPIO_NUM_12);
+    coridor_state = (bool)gpio_get_level(GPIO_NUM_13);
+    hall_state = (bool)gpio_get_level(GPIO_NUM_14);
+    motion_state_act = true;
+    luster_state_act = true;
+    coridor_state_act = true;
+    hall_state_act = true;
+#ifdef USE_ZIGBEE
+    set_attribute();
+#endif
 }
+#ifndef V1
 // Получение сигнала с датчика движения
 void motion_cb(void *arg, void *usr_data)
 {
-    ///    int8_t mot = gpio_get_level(GPIO_NUM_1);// для тестов заменю датчик движения
-    bool mot = (bool)gpio_get_level(GPIO_NUM_2);
+    ///    int8_t mot = gpio_get_level(GPIO_NUM_1);// датчик движения
+    bool mot = (bool)gpio_get_level(GPIO_NUM_2); // временный датчик освещения, имитирующий датчик движения
     ESP_LOGI(TAG, "New motion state %d", mot);
     if (mot != motion_state)
     {
-        mot_change = true;
+        motion_state_act = true;
         motion_state = mot;
         hall_light_control((uint8_t)motion_state);
 #ifdef USE_ZIGBEE
-        if (connected)
-        {
-            esp_zb_zcl_status_t state = ESP_ZB_ZCL_STATUS_SUCCESS;
-            // состояние датчика движения будем учитывать с другими датчиками движения
-            send_onoff_cmd(ZB1_ENDPOINT_4, (uint8_t)motion_state);
-            esp_zb_lock_acquire(portMAX_DELAY);
-            state = esp_zb_zcl_set_attribute_val(ZB1_ENDPOINT_4, ESP_ZB_ZCL_CLUSTER_ID_ON_OFF, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, 0, &motion_state, false);
-            esp_zb_lock_release();
-            if (state != ESP_ZB_ZCL_STATUS_SUCCESS)
-            {
-                ESP_LOGI(TAG, "Setting attribute :failed! 0x%04x", state);
-            }
-            esp_zb_lock_acquire(portMAX_DELAY);
-            state = esp_zb_zcl_set_attribute_val(ZB1_ENDPOINT_3, ESP_ZB_ZCL_CLUSTER_ID_ON_OFF, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, 0, &hall_state, false);
-            esp_zb_lock_release();
-            if (state != ESP_ZB_ZCL_STATUS_SUCCESS)
-            {
-                ESP_LOGI(TAG, "Setting attribute :failed! 0x%04x", state);
-            }
-        }
+        // состояние датчика движения будем учитывать с другими датчиками движения
+        send_onoff_cmd(ZB1_ENDPOINT_1, (uint8_t)motion_state);
+        set_attribute();
 #endif
     }
 }
+#endif
 
-// Управлением реле люстры
-void luster_control_remote()
+// Управлением реле люстры с координатора
+// Люстра включается логической 1 
+void luster_control_remote(uint8_t cmd)
 {
-    luster_control(NULL, NULL);
+    luster_state = (bool)(cmd);
+    luster_state_act = true;
+    gpio_set_level(GPIO_NUM_12, (uint32_t)cmd); //  Выводим его на GPIO12
+#ifdef USE_ZIGBEE
+    set_attribute();
+#else
+    ESP_LOGI(TAG, "Реле люстры %s", luster_state ? "включено" : "выключено");
+#endif
 }
+// Управлением реле люстры с кнопок
 void luster_control(void *arg, void *usr_data)
 {
-    luster_state = !luster_state;                        // Инвертируем текущее состояние
-    gpio_set_level(GPIO_NUM_12, (uint32_t)luster_state); //  Выводим его на GPIO12
-#ifdef USE_ZIGBEE
-    if (connected)
-    {
-        uint8_t value = (uint8_t)!luster_state;
-        esp_zb_zcl_status_t state = ESP_ZB_ZCL_STATUS_SUCCESS;
-        esp_zb_lock_acquire(portMAX_DELAY);
-        state = esp_zb_zcl_set_attribute_val(ZB1_ENDPOINT_1, ESP_ZB_ZCL_CLUSTER_ID_ON_OFF, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, 0, &value, false);
-        esp_zb_lock_release();
-        if (state != ESP_ZB_ZCL_STATUS_SUCCESS)
-        {
-            ESP_LOGI(TAG, "Setting attribute :failed! 0x%04x", state);
-        }
-    }
-#endif
-    ESP_LOGI(TAG, "Реле люстры %s", luster_state ? "выключено" : "включено");
+    bool new_state = !luster_state;
+    luster_control_remote((uint8_t)new_state);
 }
 // Управление реле дежурного света в коридоре
 // Включается с координатора по датчику движения в коридоре
-void coridor_light_control(uint8_t val)
+void coridor_light_control(uint8_t value)
 {
-    uint8_t value = 1 - val;                      // Включение нулем, поэтому инвертируем
     gpio_set_level(GPIO_NUM_13, (uint32_t)value); //  Выводим его на GPIO13
     coridor_state = (bool)value;
+    coridor_state_act = true;
 #ifdef USE_ZIGBEE
-    if (connected)
-    {
-        esp_zb_zcl_status_t state = ESP_ZB_ZCL_STATUS_SUCCESS;
-        esp_zb_lock_acquire(portMAX_DELAY);
-        state = esp_zb_zcl_set_attribute_val(ZB1_ENDPOINT_2, ESP_ZB_ZCL_CLUSTER_ID_ON_OFF, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, 0, &value, false);
-        esp_zb_lock_release();
-        if (state != ESP_ZB_ZCL_STATUS_SUCCESS)
-        {
-            ESP_LOGI(TAG, "Setting attribute :failed! 0x%04x", state);
-        }
-    }
+    set_attribute();
 #endif
-    ESP_LOGI(TAG, "Реле света в коридоре %s", coridor_state ? "выключено" : "включено");
+    //   ESP_LOGI(TAG, "Реле света в коридоре %s", coridor_state ? "включено" : "выключено");
 }
 
 // Управление реле дежурного света в прихожей
-// Включается по датчику движения в этом устройстве
-void hall_light_control(uint8_t val)
+// Включается по датчику движения в прихожей (V1)
+void hall_light_control(uint8_t value)
 {
-    uint8_t value = 1 - val;                      // Включение нулем, поэтому инвертируем
     gpio_set_level(GPIO_NUM_14, (uint32_t)value); //  Выводим его на GPIO14
-    hall_state = (bool)val;
-    // команду не посылаем, состояние света получим через аттрибут
+    hall_state = (bool)value;
+    hall_state_act = true;
 #ifdef USE_ZIGBEE
-    if (connected)
-    {
-        esp_zb_zcl_status_t state = ESP_ZB_ZCL_STATUS_SUCCESS;
-        esp_zb_lock_acquire(portMAX_DELAY);
-        state = esp_zb_zcl_set_attribute_val(ZB1_ENDPOINT_3, ESP_ZB_ZCL_CLUSTER_ID_ON_OFF, ESP_ZB_ZCL_CLUSTER_SERVER_ROLE, 0, &value, false);
-        esp_zb_lock_release();
-        if (state != ESP_ZB_ZCL_STATUS_SUCCESS)
-        {
-            ESP_LOGI(TAG, "Setting attribute :failed! 0x%04x", state);
-        }
-    }
+    set_attribute();
 #endif
-
-    ESP_LOGI(TAG, "Реле света в прихожей %s", hall_state ? "выключено" : "включено");
+    //  ESP_LOGI(TAG, "Реле света в прихожей %s", hall_state ? "включено" : "выключено");
 }
 
 void app_main(void)
@@ -294,8 +259,11 @@ void app_main(void)
     xTaskCreate(update_attribute, "Update_attribute_value", 4096, NULL, 5, NULL);
 
 #endif
+    gpio_pad_select_gpio(GPIO_NUM_12);
     gpio_set_direction(GPIO_NUM_12, GPIO_MODE_OUTPUT); // GPIO12 - на Реле1 Люстра
+    gpio_pad_select_gpio(GPIO_NUM_13);
     gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT); // GPIO13 - на Реле2 Коридор
+    gpio_pad_select_gpio(GPIO_NUM_14);
     gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT); // GPIO14 - на Реле3 Прихожая
 
 // xTaskCreate(TaskFunction, NameFunction, StackDepth, void* Parameters, Priority, TaskHandle)
@@ -304,6 +272,9 @@ void app_main(void)
 #endif
 #ifdef USE_BMP280
     xTaskCreate(bmx280_task, "bmx280_task", 4096, NULL, 3, NULL);
+#endif
+#ifdef USE_TEMP_CHIP
+    xTaskCreate(temp_chip_task, "temp_chip_task", 4096, NULL, 3, NULL);
 #endif
     light_driver_init(LIGHT_DEFAULT_ON);
     light_driver_set_green(45);
