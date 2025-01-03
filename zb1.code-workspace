@@ -22,7 +22,8 @@
 			"system_error": "c",
 			"tuple": "c",
 			"vector": "c",
-			"cstdlib": "c"
+			"cstdlib": "c",
+			"settings.h": "c"
 		}
 	}
 }
