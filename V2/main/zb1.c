@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.2.4
+// 2024 GSB zb1 v0.2.5
 //
 
 #include "settings.h"
@@ -29,6 +29,9 @@
 #ifndef USE_ZIGBEE
 static const char *TAG = "GSB_ZB_2";
 #endif
+
+
+
 
 bool light_state = 0;   // светодиод на плате
 bool connected = false; // подключен ли Zigbee
