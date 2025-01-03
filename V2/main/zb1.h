@@ -8,11 +8,11 @@
 #define INSTALLCODE_POLICY_ENABLE false // enable the install code policy for security /
 #define ED_AGING_TIMEOUT ESP_ZB_ED_AGING_TIMEOUT_64MIN
 #define ED_KEEP_ALIVE 3000                                               // 10 second
-#define ZB1_ENDPOINT_1 1                                                 //
+#define ZB2_ENDPOINT_1 1                                                 //
 #define ESP_ZB_PRIMARY_CHANNEL_MASK ESP_ZB_TRANSCEIVER_ALL_CHANNELS_MASK // Zigbee primary channel mask
 #define MANUFACTURER_NAME "GSB"
-#define MODEL_NAME "ZB1"
-#define FIRMWARE_VERSION "v0.1.10"
+#define MODEL_NAME "ZB2"
+#define FIRMWARE_VERSION "v0.2.4"
 
 #define ESP_ZB_ZED_CONFIG()                               \
     {                                                     \

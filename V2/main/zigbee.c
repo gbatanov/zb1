@@ -13,7 +13,7 @@
 
 #include "zb1.h"
 
-static const char *TAG = "GSB_ZB_1";
+static const char *TAG = "GSB_ZB_2";
 
 static char manufacturer[16], model[16], firmware_version[16];
 extern bool connected;
@@ -45,7 +45,7 @@ static void report_temperature()
     if (connected)
     {
         esp_zb_lock_acquire(portMAX_DELAY);
-        esp_zb_zcl_set_attribute_val(ZB1_ENDPOINT_1,
+        esp_zb_zcl_set_attribute_val(ZB2_ENDPOINT_1,
                                      ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
                                      ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
                                      ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID,
@@ -59,7 +59,7 @@ static void report_temperature()
         report_attr_cmd.attributeID = ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID;
         report_attr_cmd.direction = ESP_ZB_ZCL_CMD_DIRECTION_TO_CLI;
         report_attr_cmd.clusterID = ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT;
-        report_attr_cmd.zcl_basic_cmd.src_endpoint = ZB1_ENDPOINT_1;
+        report_attr_cmd.zcl_basic_cmd.src_endpoint = ZB2_ENDPOINT_1;
         report_attr_cmd.zcl_basic_cmd.dst_addr_u.addr_short = 0;
         report_attr_cmd.zcl_basic_cmd.dst_endpoint = 1;
 
@@ -99,12 +99,12 @@ void set_attribute()
     {
         PresentValue = hall_state_act << 6 | hall_state << 2 | coridor_state_act << 5 | coridor_state << 1;
 
-#ifndef V1
+#ifndef V2
         ESP_LOGI(TAG, "PresentValue 0x%04X", PresentValue);
 #endif
 
         esp_zb_lock_acquire(portMAX_DELAY);
-        esp_zb_zcl_set_attribute_val(ZB1_ENDPOINT_1,
+        esp_zb_zcl_set_attribute_val(ZB2_ENDPOINT_1,
                                      ESP_ZB_ZCL_CLUSTER_ID_MULTI_VALUE,
                                      ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
                                      ESP_ZB_ZCL_ATTR_MULTI_VALUE_PRESENT_VALUE_ID,
@@ -118,7 +118,7 @@ void set_attribute()
         report_attr_cmd.attributeID = ESP_ZB_ZCL_ATTR_MULTI_VALUE_PRESENT_VALUE_ID;
         report_attr_cmd.direction = ESP_ZB_ZCL_CMD_DIRECTION_TO_CLI;
         report_attr_cmd.clusterID = ESP_ZB_ZCL_CLUSTER_ID_MULTI_VALUE;
-        report_attr_cmd.zcl_basic_cmd.src_endpoint = ZB1_ENDPOINT_1;
+        report_attr_cmd.zcl_basic_cmd.src_endpoint = ZB2_ENDPOINT_1;
         report_attr_cmd.zcl_basic_cmd.dst_addr_u.addr_short = 0;
         report_attr_cmd.zcl_basic_cmd.dst_endpoint = 1;
 
@@ -234,7 +234,7 @@ esp_err_t zb_set_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *me
              message->attribute.id,
              message->attribute.data.size);
 
-    if (message->info.dst_endpoint == ZB1_ENDPOINT_1)
+    if (message->info.dst_endpoint == ZB2_ENDPOINT_1)
     {
         if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_MULTI_VALUE)
         {
@@ -243,7 +243,7 @@ esp_err_t zb_set_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *me
                 uint16_t value16 = *(uint16_t *)message->attribute.data.value;
                 uint8_t value = (value16 & 0xff00) >> 8;
                 // в 4-х старших битах старшего байта - какие младшие биты использовать для установки аттрибутов и смены состояния реле
-#ifndef V1
+#ifndef V2
                 ESP_LOGI(TAG, "CurrentValue 0x%04x  sets to 0x%02x by coordinator", value16, value);
 #endif
                 uint8_t cmd = 0;
@@ -378,7 +378,7 @@ void esp_zb_task(void *pvParameters)
     esp_zb_ep_list_t *esp_zb_ep_list = esp_zb_ep_list_create();
 
     esp_zb_endpoint_config_t endpoint_config = {
-        .endpoint = ZB1_ENDPOINT_1,
+        .endpoint = ZB2_ENDPOINT_1,
         .app_profile_id = ESP_ZB_AF_HA_PROFILE_ID,
         .app_device_id = ESP_ZB_HA_ON_OFF_SWITCH_DEVICE_ID,
         .app_device_version = 0};
@@ -390,7 +390,7 @@ void esp_zb_task(void *pvParameters)
     // Config the reporting info
     esp_zb_zcl_reporting_info_t reporting_info1 = {
         .direction = ESP_ZB_ZCL_CMD_DIRECTION_TO_SRV,
-        .ep = ZB1_ENDPOINT_1,
+        .ep = ZB2_ENDPOINT_1,
         .cluster_id = ESP_ZB_ZCL_CLUSTER_ID_MULTI_VALUE,
         .cluster_role = ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
         .dst.profile_id = ESP_ZB_AF_HA_PROFILE_ID,
@@ -407,7 +407,7 @@ void esp_zb_task(void *pvParameters)
 #if defined USE_TEMP_CHIP
     esp_zb_zcl_reporting_info_t reporting_info2 = {
         .direction = ESP_ZB_ZCL_CMD_DIRECTION_TO_SRV,
-        .ep = ZB1_ENDPOINT_1,
+        .ep = ZB2_ENDPOINT_1,
         .cluster_id = ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
         .cluster_role = ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
         .dst.profile_id = ESP_ZB_AF_HA_PROFILE_ID,

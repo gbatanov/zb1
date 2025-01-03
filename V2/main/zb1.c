@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.2.3
+// 2024 GSB zb1 v0.2.4
 //
 
 #include "settings.h"
@@ -27,7 +27,7 @@
 #endif
 
 #ifndef USE_ZIGBEE
-static const char *TAG = "GSB_ZB_1";
+static const char *TAG = "GSB_ZB_2";
 #endif
 
 bool light_state = 0;   // светодиод на плате
