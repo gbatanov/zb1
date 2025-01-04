@@ -45,6 +45,59 @@ extern int16_t temperature;
 static const esp_partition_t *s_ota_partition = NULL;
 static esp_ota_handle_t s_ota_handle = 0;
 #define OTA_UPGRADE_QUERY_INTERVAL (1 * 60) // 1 minutes
+
+static switch_func_pair_t button_func_pair[] = {{GPIO_NUM_9, SWITCH_ON_CONTROL}};
+
+static void zb_zdo_match_desc_handler(esp_zb_zdp_status_t zdo_status, uint16_t addr, uint8_t endpoint, void *user_ctx)
+{
+    if (zdo_status == ESP_ZB_ZDP_STATUS_SUCCESS)
+    {
+        esp_zb_ota_upgrade_client_query_interval_set(
+            ESP_OTA_CLIENT_ENDPOINT,
+            OTA_UPGRADE_QUERY_INTERVAL);
+        esp_zb_ota_upgrade_client_query_image_req(addr, endpoint);
+        ESP_LOGI(TAG, "Query OTA upgrade from server endpoint: %d after %d seconds", endpoint, OTA_UPGRADE_QUERY_INTERVAL);
+    }
+    else
+    {
+        ESP_LOGW(TAG, "No OTA Server found");
+    }
+}
+
+static void zb_buttons_handler(switch_func_pair_t *button_func_pair)
+{
+    assert(button_func_pair);
+    esp_zb_zdo_match_desc_req_param_t req;
+    uint16_t cluster_list[] = {ESP_ZB_ZCL_CLUSTER_ID_OTA_UPGRADE};
+
+    // Match the OTA server of coordinator
+    req.addr_of_interest = 0x0000;
+    req.dst_nwk_addr = 0x0000;
+    req.num_in_clusters = 1;
+    req.num_out_clusters = 0;
+    req.profile_id = ESP_ZB_AF_HA_PROFILE_ID;
+    req.cluster_list = cluster_list;
+    esp_zb_lock_acquire(portMAX_DELAY);
+    if (esp_zb_bdb_dev_joined())
+    {
+        esp_zb_zdo_match_cluster(&req, zb_zdo_match_desc_handler, NULL);
+    }
+    esp_zb_lock_release();
+}
+
+static esp_err_t deferred_driver_init(void)
+{
+    static bool is_inited = false;
+    if (!is_inited)
+    {
+        ESP_RETURN_ON_FALSE(
+            switch_driver_init(button_func_pair, PAIR_SIZE(button_func_pair), zb_buttons_handler),
+            ESP_FAIL, TAG, "Failed to initialize switch driver");
+        is_inited = true;
+    }
+    return is_inited ? ESP_OK : ESP_FAIL;
+}
+
 //
 typedef struct device_params_s
 {
@@ -182,6 +235,8 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
         // Мягкий или аппаратный сброс устройства
         if (err_status == ESP_OK)
         {
+            ESP_LOGI(TAG, "Deferred driver initialization %s", deferred_driver_init() ? "failed" : "successful");
+
             ESP_LOGI(TAG, "Device started up in %s factory-reset mode", esp_zb_bdb_is_factory_new() ? "" : "non");
             if (esp_zb_bdb_is_factory_new())
             {
@@ -245,6 +300,8 @@ static esp_err_t zb_ota_upgrade_status_handler(esp_zb_zcl_ota_upgrade_value_mess
     static uint32_t offset = 0;
     static int64_t start_time = 0;
     esp_err_t ret = ESP_OK;
+
+    ESP_LOGI(TAG, "OTA zb_ota_upgrade_status_handler");
 
     if (message.info.status == ESP_ZB_ZCL_STATUS_SUCCESS)
     {
@@ -381,9 +438,11 @@ esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id, const 
     switch (callback_id)
     {
     case ESP_ZB_CORE_OTA_UPGRADE_VALUE_CB_ID:
+        ESP_LOGI(TAG, "Receive Zigbee action ESP_ZB_CORE_OTA_UPGRADE_VALUE_CB_ID callback");
         ret = zb_ota_upgrade_status_handler(*(esp_zb_zcl_ota_upgrade_value_message_t *)message);
         break;
     case ESP_ZB_CORE_OTA_UPGRADE_QUERY_IMAGE_RESP_CB_ID:
+        ESP_LOGI(TAG, "Receive Zigbee action ESP_ZB_CORE_OTA_UPGRADE_QUERY_IMAGE_RESP_CB_ID callback");
         ret = zb_ota_upgrade_query_image_resp_handler(*(esp_zb_zcl_ota_upgrade_query_image_resp_message_t *)message);
         break;
     case ESP_ZB_CORE_SET_ATTR_VALUE_CB_ID: // 0
@@ -435,8 +494,8 @@ void esp_zb_task(void *pvParameters)
         .hw_version = OTA_UPGRADE_HW_VERSION,
         .max_data_size = OTA_UPGRADE_MAX_DATA_SIZE,
     };
-    uint16_t ota_upgrade_server_addr = 0xffff;
-    uint8_t ota_upgrade_server_ep = 0xff;
+    uint16_t ota_upgrade_server_addr = 0x0000;
+    uint8_t ota_upgrade_server_ep = 0x01;
     esp_zb_ota_cluster_add_attr(ota_cluster, ESP_ZB_ZCL_ATTR_OTA_UPGRADE_CLIENT_DATA_ID, (void *)&variable_config);
     esp_zb_ota_cluster_add_attr(ota_cluster, ESP_ZB_ZCL_ATTR_OTA_UPGRADE_SERVER_ADDR_ID, (void *)&ota_upgrade_server_addr);
     esp_zb_ota_cluster_add_attr(ota_cluster, ESP_ZB_ZCL_ATTR_OTA_UPGRADE_SERVER_ENDPOINT_ID, (void *)&ota_upgrade_server_ep);
@@ -463,7 +522,7 @@ void esp_zb_task(void *pvParameters)
     esp_zb_multistate_value_cluster_add_attr(esp_zb_multistate_value_cluster,
                                              ESP_ZB_ZCL_ATTR_MULTI_VALUE_APPLICATION_TYPE_ID,
                                              &application_type_value);
-    char desc[] = "zb1 value";
+    char desc[] = "zb2 value";
     esp_zb_multistate_value_cluster_add_attr(esp_zb_multistate_value_cluster,
                                              ESP_ZB_ZCL_ATTR_MULTI_VALUE_DESCRIPTION_ID,
                                              desc);

@@ -2,6 +2,7 @@
 #define ZB_1_H
 
 #include "esp_zigbee_core.h"
+#include "switch_driver.h"
 #include "light_driver.h"
 
 // Zigbee configuration
@@ -22,7 +23,7 @@
 #define OTA_UPGRADE_HW_VERSION              0x0101 // The parameter indicates the version of hardware 
 #define OTA_UPGRADE_MAX_DATA_SIZE           223 // The recommended OTA image block size 
 
-/* Basic manufacturer information */
+// Basic manufacturer information 
 #define ESP_MANUFACTURER_NAME "\x03""GSB"      // Customized manufacturer name 
 #define ESP_MODEL_IDENTIFIER "\x03""ZB2" // Customized model identifier 
 

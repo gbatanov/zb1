@@ -15,7 +15,7 @@
 #include "zb1.h"
 #include "temp_chip.h"
 
-static const char *TAG = "GSB_ZB_1";
+static const char *TAG = "GSB_ZB_2";
 
 extern int16_t temperature;
 extern bool connected;
