@@ -34,6 +34,14 @@ static void zb_buttons_handler(switch_func_pair_t *button_func_pair)
     ESP_LOGI(TAG, "zb_buttons_handler %lu pin", pin);
     if (pin == GPIO_NUM_9)
         ESP_LOGI(TAG, "BOOT click");
+    else if (pin == GPIO_NUM_0)
+    {
+        bool value = gpio_get_level(pin);
+        if (value) // логика инверсная, активный 0
+            ESP_LOGI(TAG, "Switch to off");
+        else
+            ESP_LOGI(TAG, "Switch to on");
+    }
 }
 
 esp_err_t deferred_driver_init(void)

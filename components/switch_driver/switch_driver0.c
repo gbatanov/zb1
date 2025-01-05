@@ -80,6 +80,7 @@ static void switch_driver_button_detected(void *arg)
         while (evt_flag)
         {
             bool value = gpio_get_level(io_num);
+            // TODO: реализовать более универсальный дебоунсер
             /*
             switch (switch_state)
             {
