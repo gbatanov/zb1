@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.2.2
+// 2024 GSB zb1 v0.0.3
 //
 
 #include "settings.h"
@@ -43,7 +43,7 @@ i2c_master_bus_handle_t bus_handle;
 #endif
 
 #ifndef V1
-static const char *TAG = "GSB_ZB_1";
+static const char *TAG = V0TAG;
 #endif
 
 bool light_state = 0;   // светодиод на плате
@@ -239,7 +239,7 @@ void hall_light_control(uint8_t value)
 
 void app_main(void)
 {
-    register_buttons();
+
 #ifdef USE_I2C
     main_i2c_init();
 #endif
@@ -265,6 +265,12 @@ void app_main(void)
     gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT); // GPIO13 - на Реле2 Коридор
     gpio_pad_select_gpio(GPIO_NUM_14);
     gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT); // GPIO14 - на Реле3 Прихожая
+
+#ifdef USE_ISR_BUTTON
+    ESP_LOGI(TAG, "Deferred driver initialization %s", deferred_driver_init() ? "failed" : "successful");
+#else
+    register_buttons();
+#endif
 
 // xTaskCreate(TaskFunction, NameFunction, StackDepth, void* Parameters, Priority, TaskHandle)
 #ifdef USE_DISPLAY

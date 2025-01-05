@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.2.6
+// 2024 GSB zb1 v0.2.7
 //
 
 #include "settings.h"
@@ -23,15 +23,12 @@
 #include "zb1.h"
 
 #if !defined ZB_ED_ROLE
-#error Define ZB_ED_ROLE in idf.py menuconfig to compile light (End Device) source code.
+#error Define ZB_ED_ROLE in idf.py menuconfig to compile source code.
 #endif
 
 #ifndef USE_ZIGBEE
 static const char *TAG = "GSB_ZB_2";
 #endif
-
-
-
 
 bool light_state = 0;   // светодиод на плате
 bool connected = false; // подключен ли Zigbee

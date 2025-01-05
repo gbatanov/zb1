@@ -1,5 +1,7 @@
+#define V0TAG "GSB_ZB_0"
 //#define USE_ZIGBEE
 
+#define USE_ISR_BUTTON
 //#define V1
 // USE_TEMP_CHIP перекрывает использование USE_BMP280
 // использую либо то, либо другое

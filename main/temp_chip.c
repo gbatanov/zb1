@@ -14,7 +14,7 @@
 #include "driver/temperature_sensor.h" // встроенный сенсор температуры чипа
 #include "temp_chip.h"
 
-static const char *TAG = "GSB_ZB_1";
+static const char *TAG = V0TAG;
 
 #if defined USE_BMP280 || defined USE_TEMP_CHIP
 extern int16_t temperature;

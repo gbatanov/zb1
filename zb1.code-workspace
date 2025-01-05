@@ -23,7 +23,8 @@
 			"tuple": "c",
 			"vector": "c",
 			"cstdlib": "c",
-			"settings.h": "c"
+			"settings.h": "c",
+			"switch_driver.h": "c"
 		}
 	}
 }

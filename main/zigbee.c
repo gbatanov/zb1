@@ -14,7 +14,7 @@
 #include "zb1.h"
 
 
-static const char *TAG = "GSB_ZB_1";
+static const char *TAG = V0TAG;
 
 static char manufacturer[16], model[16], firmware_version[16];
 extern bool connected;
