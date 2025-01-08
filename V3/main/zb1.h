@@ -11,8 +11,8 @@
 #define ZB1_ENDPOINT_1 1                                                 //
 #define ESP_ZB_PRIMARY_CHANNEL_MASK ESP_ZB_TRANSCEIVER_ALL_CHANNELS_MASK // Zigbee primary channel mask
 #define MANUFACTURER_NAME "GSB"
-#define MODEL_NAME "ZB1"
-#define FIRMWARE_VERSION "v0.1.10"
+#define MODEL_NAME "ZB4"
+#define FIRMWARE_VERSION "v0.4.1"
 
 #define ESP_ZB_ZED_CONFIG()                               \
     {                                                     \
@@ -31,8 +31,7 @@ extern "C"
     void get_current_state();
     void set_attribute();
 
-    void coridor_light_control(uint8_t val);
-    void hall_light_control(uint8_t val);
+    void relay_zb4_control(uint8_t val);
     void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct);
     esp_err_t zb_set_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *message);
     esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id, const void *message);
