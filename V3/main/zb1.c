@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.3.1
+// 2024 GSB zb1 v0.3.2
 //
 
 #include "settings.h"
@@ -26,9 +26,7 @@
 #error Define ZB_ED_ROLE in idf.py menuconfig to compile light (End Device) source code.
 #endif
 
-#ifndef USE_ZIGBEE
-extern const char *TAG ;
-#endif
+extern const char *TAG;
 
 bool light_state = 0;   // светодиод на плате
 bool connected = false; // подключен ли Zigbee
@@ -53,16 +51,18 @@ void get_current_state()
 }
 
 // Управление реле ZB4 дежурного света на кухне
-// Включается с координатора по датчику движения 
+// Включается с координатора по датчику движения
 void relay_zb4_control(uint8_t value)
 {
     gpio_set_level(GPIO_NUM_12, (uint32_t)value); //  Выводим его на GPIO12
     relay_state = (bool)value;
     relay_state_act = true;
+#ifdef V3_LOG
+    ESP_LOGI(TAG, "Реле ZB4 %s", relay_state ? "включено" : "выключено");
+#endif
+
 #ifdef USE_ZIGBEE
     set_attribute();
-#else
-    ESP_LOGI(TAG, "Реле ZB4 %s", relay_state ? "включено" : "выключено");
 #endif
 }
 
@@ -87,7 +87,7 @@ void app_main(void)
 #endif
     gpio_pad_select_gpio(GPIO_NUM_12);
     gpio_set_direction(GPIO_NUM_12, GPIO_MODE_OUTPUT); // GPIO12 - на Реле ZB4
- 
+
     // xTaskCreate(TaskFunction, NameFunction, StackDepth, void* Parameters, Priority, TaskHandle)
 
 #ifdef USE_TEMP_CHIP

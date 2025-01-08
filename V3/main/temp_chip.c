@@ -15,28 +15,26 @@
 #include "zb1.h"
 #include "temp_chip.h"
 
-static const char *TAG = "GSB_ZB_1";
-
+extern const char *TAG ;
 extern int16_t temperature;
 extern bool connected;
 
 void temp_chip_task(void *pvParameters)
 {
+    float tsens_value;
+
     temperature_sensor_handle_t temp_sensor = NULL;
     temperature_sensor_config_t temp_sensor_config = TEMPERATURE_SENSOR_CONFIG_DEFAULT(20, 100);
     temperature_sensor_install(&temp_sensor_config, &temp_sensor);
-
     temperature_sensor_enable(temp_sensor);
-
-    float tsens_value;
 
     while (1)
     {
         temperature_sensor_get_celsius(temp_sensor, &tsens_value);
-        int16_t tempInt16 = (int16_t)(tsens_value * 100);
-        temperature = tempInt16;
+        temperature = (int16_t)(tsens_value * 100);
+#ifdef V3_LOG
         ESP_LOGI(TAG, "Temperature value %.02f ℃", tsens_value);
-
+#endif
         vTaskDelay(30000 / portTICK_PERIOD_MS); // меряем раз в 30 секунд
     }
 }

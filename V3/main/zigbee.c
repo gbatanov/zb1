@@ -62,9 +62,10 @@ static void report_temperature()
         //      esp_zb_lock_acquire(portMAX_DELAY);
         esp_err_t err = esp_zb_zcl_report_attr_cmd_req(&report_attr_cmd);
         esp_zb_lock_release();
-
+#ifdef V3_LOG
         if (err != ESP_OK)
             ESP_LOGW(TAG, "Reporting error");
+#endif
     }
 #endif
 }
@@ -79,7 +80,8 @@ void update_attribute()
     {
         if (connected)
         {
-            get_current_state();
+            //           get_current_state();
+            set_attribute();
         }
 
         vTaskDelay(60000 / portTICK_PERIOD_MS); // 1 раз в 60 секунд
@@ -92,7 +94,9 @@ void set_attribute()
 #ifdef USE_ZIGBEE
     if (connected)
     {
-
+#ifdef V3_LOG
+        ESP_LOGI(TAG, "Set attribute");
+#endif
         esp_zb_lock_acquire(portMAX_DELAY);
         esp_zb_zcl_set_attribute_val(ZB1_ENDPOINT_1,
                                      ESP_ZB_ZCL_CLUSTER_ID_ON_OFF,
@@ -101,7 +105,6 @@ void set_attribute()
                                      &relay_state,
                                      false);
         //        esp_zb_lock_release();
-        //        ESP_LOGI(TAG, "Set attribute");
 
         esp_zb_zcl_report_attr_cmd_t report_attr_cmd = {0};
         report_attr_cmd.address_mode = ESP_ZB_APS_ADDR_MODE_16_ENDP_PRESENT;
@@ -115,10 +118,10 @@ void set_attribute()
         //        esp_zb_lock_acquire(portMAX_DELAY);
         esp_err_t err = esp_zb_zcl_report_attr_cmd_req(&report_attr_cmd);
         esp_zb_lock_release();
-
+#ifdef V3_LOG
         if (err != ESP_OK)
             ESP_LOGW(TAG, "Reporting error");
-
+#endif
 #ifdef USE_TEMP_CHIP
         report_temperature();
 #endif
@@ -146,8 +149,10 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
     switch (sig_type)
     {
     case ESP_ZB_ZDO_SIGNAL_SKIP_STARTUP:
-        // Устройство уже инициализировано, стартовая инициализация пропускается
+// Устройство уже инициализировано, стартовая инициализация пропускается
+#ifdef V3_LOG
         ESP_LOGI(TAG, "Zigbee stack initialized");
+#endif
         esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_INITIALIZATION);
         connected = false;
         break;
@@ -156,23 +161,31 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
         // Мягкий или аппаратный сброс устройства
         if (err_status == ESP_OK)
         {
+#ifdef V3_LOG
             ESP_LOGI(TAG, "Device started up in %s factory-reset mode", esp_zb_bdb_is_factory_new() ? "" : "non");
+#endif
             if (esp_zb_bdb_is_factory_new())
             {
+#ifdef V3_LOG
                 ESP_LOGI(TAG, "Start network steering");
+#endif
                 esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_NETWORK_STEERING);
             }
             else
             {
+#ifdef V3_LOG
                 ESP_LOGI(TAG, "Device rebooted");
+#endif
                 esp_zb_bdb_start_top_level_commissioning(ESP_ZB_BDB_MODE_NETWORK_STEERING);
             }
         }
+#ifdef V3_LOG
         else
         {
             // commissioning failed
             ESP_LOGW(TAG, "Failed to initialize Zigbee stack (status: %s)", esp_err_to_name(err_status));
         }
+#endif
         break;
     case ESP_ZB_BDB_SIGNAL_STEERING:
         // Результат поиска координатора и подключения к сети
@@ -181,15 +194,19 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
             esp_zb_ieee_addr_t extended_pan_id;
             esp_zb_get_extended_pan_id(extended_pan_id);
             connected = true;
+#ifdef V3_LOG
             ESP_LOGI(TAG, "Joined network successfully (Extended PAN ID: %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x, PAN ID: 0x%04hx, Channel:%d, Short Address: 0x%04hx)",
                      extended_pan_id[7], extended_pan_id[6], extended_pan_id[5], extended_pan_id[4],
                      extended_pan_id[3], extended_pan_id[2], extended_pan_id[1], extended_pan_id[0],
                      esp_zb_get_pan_id(), esp_zb_get_current_channel(), esp_zb_get_short_address());
+#endif
         }
         else
         {
             connected = false;
+#ifdef V3_LOG
             ESP_LOGI(TAG, "Network steering was not successful (status: %s)", esp_err_to_name(err_status));
+#endif
             esp_zb_scheduler_alarm((esp_zb_callback_t)bdb_start_top_level_commissioning_cb, ESP_ZB_BDB_MODE_NETWORK_STEERING, 1000);
         }
         break;
@@ -199,6 +216,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
         //   }
         //    break;
     default:
+#ifdef V3_LOG
         // Необслуживаемое сообщение
         if (err_status != ESP_OK)
             ESP_LOGI(TAG, "ZDO signal: %s (0x%x), status: 0x%x %s",
@@ -206,6 +224,7 @@ void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct)
                      sig_type,
                      *(uint8_t *)esp_zb_app_signal_get_params(p_sg_p),
                      esp_err_to_name(err_status));
+#endif
         break;
     }
 }
@@ -218,12 +237,13 @@ esp_err_t zb_set_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *me
 
     ESP_RETURN_ON_FALSE(message, ESP_FAIL, TAG, "Empty message");
     ESP_RETURN_ON_FALSE(message->info.status == ESP_ZB_ZCL_STATUS_SUCCESS, ESP_ERR_INVALID_ARG, TAG, "Received message: error status(%d)", message->info.status);
+#ifdef V3_LOG
     ESP_LOGI(TAG, "Received message: endpoint(%d), cluster(0x%x), attribute(0x%x), data size(%d)",
              message->info.dst_endpoint,
              message->info.cluster,
              message->attribute.id,
              message->attribute.data.size);
-
+#endif
     if (message->info.dst_endpoint == ZB1_ENDPOINT_1)
     {
         if (message->info.cluster == ESP_ZB_ZCL_CLUSTER_ID_ON_OFF)
@@ -231,9 +251,9 @@ esp_err_t zb_set_attribute_handler(const esp_zb_zcl_set_attr_value_message_t *me
             if (message->attribute.id == ESP_ZB_ZCL_ATTR_ON_OFF_ON_OFF_ID)
             {
                 uint8_t value = *(uint8_t *)message->attribute.data.value;
-
+#ifdef V3_LOG
                 ESP_LOGI(TAG, "CurrentValue 0x%02x  sets to 0x%02x by coordinator", relay_state, value);
-
+#endif
                 relay_zb4_control(value);
             }
         }
@@ -253,7 +273,9 @@ esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id, const 
         ret = zb_set_attribute_handler((esp_zb_zcl_set_attr_value_message_t *)message);
         break;
     default:
+#ifdef V3_LOG
         ESP_LOGI(TAG, "Receive Zigbee action(0x%x) callback", callback_id);
+#endif
         break;
     }
     return ret;
