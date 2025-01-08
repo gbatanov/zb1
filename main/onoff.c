@@ -23,11 +23,7 @@ static switch_func_pair_t button_func_pair[] = {
     {GPIO_NUM_9, SWITCH_ON_CONTROL},
     {GPIO_NUM_0, SWITCH_ONOFF_TOGGLE_CONTROL}};
 
-//    typedef struct
-//    {
-//        uint32_t pin;
-//        switch_func_t func;
-//    } switch_func_pair_t;
+
 static void zb_buttons_handler(switch_func_pair_t *button_func_pair)
 {
     uint32_t pin = button_func_pair->pin;
