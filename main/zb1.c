@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.0.5
+// 2024 GSB zb1 v0.0.6
 //
 
 #include "settings.h"
@@ -6,8 +6,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/timers.h"
+
 #include "esp_check.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -36,14 +39,21 @@ i2c_master_bus_handle_t bus_handle;
 #include "bmx280.h"
 #endif
 
+#include "gsbtimer.h"
+
+#ifdef USE_SONAR
+#include "hc-sr04.h"
+extern HCSR04 sonar;
+#endif
+
 #include "zb1.h"
 
 #if !defined ZB_ED_ROLE
 #error Define ZB_ED_ROLE in idf.py menuconfig to compile light (End Device) source code.
 #endif
 
-#ifndef V1
-static const char *TAG = V0TAG;
+#ifdef V0_LOG
+const char *TAG = V0TAG;
 #endif
 
 bool light_state = 0;   // светодиод на плате
@@ -171,7 +181,7 @@ void get_current_state()
     set_attribute();
 #endif
 }
-#ifndef V1
+#ifdef USE_MOTION_SENSOR
 // Получение сигнала с датчика движения
 void motion_cb(void *arg, void *usr_data)
 {
@@ -269,7 +279,7 @@ void app_main(void)
 #ifdef USE_ISR_BUTTON
     ESP_LOGI(TAG, "Deferred driver initialization %s", deferred_driver_init() ? "failed" : "successful");
 #else
-    register_buttons();
+ //   register_buttons();
 #endif
 
 // xTaskCreate(TaskFunction, NameFunction, StackDepth, void* Parameters, Priority, TaskHandle)
@@ -282,9 +292,28 @@ void app_main(void)
 #ifdef USE_TEMP_CHIP
     xTaskCreate(temp_chip_task, "temp_chip_task", 4096, NULL, 3, NULL);
 #endif
+
+#ifdef USE_SONAR
+    xTaskCreate(sonar_task, "sonar_task", 4096, NULL, 3, NULL);
+#endif
     light_driver_init(LIGHT_DEFAULT_ON);
     light_driver_set_green(45);
     light_driver_set_red(10);
     light_driver_set_blue(20);
     light_driver_set_power(true);
+
+#ifdef USE_TIMER
+    create_timer(1);
+    start_timer();
+    // Основной цикл
+    while (1)
+    {
+        // Просто выводим сообщение в лог через каждые 10 секунд
+        vTaskDelay(pdMS_TO_TICKS(10000));
+        ESP_LOGI(TAG, "vTaskDelay(10000) timeout");
+        uint32_t del = 10000;
+        esp_rom_delay_us(del); // 5 секунд дают ошибку от вотчдога, 10 msec - norm
+        ESP_LOGI(TAG, "after 10 msec");
+    };
+#endif
 }

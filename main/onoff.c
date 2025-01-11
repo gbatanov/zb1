@@ -154,6 +154,7 @@ void register_buttons()
     iot_button_register_cb(gpio_btn3, BUTTON_LONG_PRESS_START, motion_cb, NULL);
     iot_button_register_cb(gpio_btn3, BUTTON_LONG_PRESS_UP, motion_cb, NULL);
 // iot_button_register_cb(gpio_btn3, BUTTON_SINGLE_CLICK, motion_short_cb, NULL);
+
 #endif
 }
 #endif

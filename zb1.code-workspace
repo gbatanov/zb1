@@ -24,7 +24,8 @@
 			"vector": "c",
 			"cstdlib": "c",
 			"settings.h": "c",
-			"switch_driver.h": "c"
+			"switch_driver.h": "c",
+			"gsbtimer.h": "c"
 		}
 	}
 }
