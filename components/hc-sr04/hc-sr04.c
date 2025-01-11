@@ -43,16 +43,17 @@ void sonar_task(void *pvParameters)
         gpio_set_level(sonar.TRIG_PIN, (uint32_t)0); // выводим на триггер 0
         bool state = false;
         uint8_t counter = 0;
-            ESP_LOGI(TAG, "Включи!");
+        //           ESP_LOGI(TAG, "Включи!");
         do
         {
-              vTaskDelay(100 / portTICK_PERIOD_MS);
+            //              vTaskDelay(100 / portTICK_PERIOD_MS);
             state = (bool)gpio_get_level(sonar.ECHO_PIN);
- //           esp_rom_delay_us(1);
+            esp_rom_delay_us(1);
 
             counter++;
-            if (counter > 100){
-                 ESP_LOGI(TAG, "Не успел!");
+            if (counter > 100)
+            {
+                ESP_LOGI(TAG, "Не успел!");
                 break;
             }
         } while (!state);
@@ -68,8 +69,10 @@ void sonar_task(void *pvParameters)
         {
             distance = duration / 58;
             ESP_LOGI(TAG, "Duration %d cm", distance);
-        } else{
-           ESP_LOGI(TAG, "Duration no"); 
+        }
+        else
+        {
+            ESP_LOGI(TAG, "Duration no");
         }
         vTaskDelay(2000 / portTICK_PERIOD_MS);
     }
