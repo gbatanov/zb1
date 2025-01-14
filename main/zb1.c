@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.0.6
+// 2024 GSB zb1 v0.0.7
 //
 
 #include "settings.h"

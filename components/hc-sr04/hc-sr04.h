@@ -16,8 +16,8 @@
 
 static const int MAX_DISTANCE = 400;
 
-#define TRIG_PIN_NUM GPIO_NUM_1
-#define ECHO_PIN_NUM GPIO_NUM_0
+#define TRIG_PIN_NUM GPIO_NUM_0
+#define ECHO_PIN_NUM GPIO_NUM_1
 
 typedef struct{
     int TRIG_PIN;

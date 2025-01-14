@@ -24,6 +24,7 @@ void create_sonar(int trigPin, int echoPin)
     sonar.TRIG_PIN = trigPin;
     gpio_pad_select_gpio(sonar.ECHO_PIN);
     gpio_set_direction(sonar.ECHO_PIN, GPIO_MODE_INPUT); // ECHO pin - input
+                                                         //    gpio_set_pull_mode(sonar.ECHO_PIN, GPIO_PULLUP_ONLY);
     gpio_pad_select_gpio(sonar.TRIG_PIN);
     gpio_set_direction(sonar.TRIG_PIN, GPIO_MODE_OUTPUT); // TRIG pin - output
 }
@@ -36,33 +37,35 @@ void sonar_task(void *pvParameters)
     {
         duration = 0;
         // отправляем импульс длительностью 10 микросекунд
-        gpio_set_level(sonar.TRIG_PIN, (uint32_t)0); // выводим на триггер 0
+        // сигнал инвертируеся на ключе!
+        gpio_set_level(sonar.TRIG_PIN, (uint32_t)1); // выводим на триггер 0
         esp_rom_delay_us(2);                         // задержка 2 микросекунды
-        gpio_set_level(sonar.TRIG_PIN, (uint32_t)1); // выводим на триггер 1
-        esp_rom_delay_us(10);                        // задержка 10 микросекунды
-        gpio_set_level(sonar.TRIG_PIN, (uint32_t)0); // выводим на триггер 0
-        bool state = false;
-        uint8_t counter = 0;
-        //           ESP_LOGI(TAG, "Включи!");
-        do
-        {
-            //              vTaskDelay(100 / portTICK_PERIOD_MS);
-            state = (bool)gpio_get_level(sonar.ECHO_PIN);
-            esp_rom_delay_us(1);
+        gpio_set_level(sonar.TRIG_PIN, (uint32_t)0); // выводим на триггер 1
+        esp_rom_delay_us(10);                        // задержка 10 микросекунд
+        gpio_set_level(sonar.TRIG_PIN, (uint32_t)1); // выводим на триггер 0
 
+        bool state = false;
+        uint16_t counter = 0;
+        state = (bool)gpio_get_level(sonar.ECHO_PIN);
+        // от отправки импульса до установки высокого уровня проходит ~480мкс
+        while (!state)
+        {
+            esp_rom_delay_us(1);
             counter++;
-            if (counter > 100)
+            if (counter > 1000)
             {
                 ESP_LOGI(TAG, "Не успел!");
                 break;
             }
-        } while (!state);
+            state = (bool)gpio_get_level(sonar.ECHO_PIN);
+        }
+
         while (state && duration < 23200)
         {
             // 3,4 cm in microsecond
-            state = (bool)gpio_get_level(sonar.ECHO_PIN);
             esp_rom_delay_us(1);
             duration++;
+            state = (bool)gpio_get_level(sonar.ECHO_PIN);
         }
 
         if (duration > 0 && duration < 23200)
@@ -74,6 +77,7 @@ void sonar_task(void *pvParameters)
         {
             ESP_LOGI(TAG, "Duration no");
         }
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
