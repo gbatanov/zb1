@@ -14,7 +14,7 @@
 
 #include "zb1.h"
 
-static const char *TAG = V0TAG;
+static const char *TAG = V4TAG;
 
 #ifdef USE_ISR
 #include "switch_driver4.h"
@@ -57,7 +57,7 @@ esp_err_t deferred_driver_init(void)
     if (!is_inited)
     {
         ESP_RETURN_ON_FALSE(
-            switch_driver_init(button_func_pair, PAIR_SIZE(button_func_pair), zb_buttons_handler),
+            switch_driver_init(button_func_pair, zb_buttons_handler),
             ESP_FAIL, TAG, "Failed to initialize switch driver");
         is_inited = true;
     }

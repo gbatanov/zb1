@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.4.1
+// 2024 GSB zb1 v0.4.2
 //
 
 #include "settings.h"
@@ -21,11 +21,6 @@
 
 #ifdef USE_TEMP_CHIP
 #include "temp_chip.h"
-#endif
-
-#ifdef USE_SONAR
-#include "hc-sr04.h"
-extern HCSR04 sonar;
 #endif
 
 #include "zb1.h"
@@ -91,9 +86,6 @@ void app_main(void)
     xTaskCreate(temp_chip_task, "temp_chip_task", 4096, NULL, 3, NULL);
 #endif
 
-#ifdef USE_SONAR
-    xTaskCreate(sonar_task, "sonar_task", 4096, NULL, 3, NULL);
-#endif
     light_driver_init(LIGHT_DEFAULT_ON);
     light_driver_set_green(1);
     light_driver_set_red(1);
