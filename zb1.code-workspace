@@ -25,7 +25,8 @@
 			"cstdlib": "c",
 			"settings.h": "c",
 			"switch_driver.h": "c",
-			"gsbtimer.h": "c"
+			"gsbtimer.h": "c",
+			"switch_driver4.h": "c"
 		}
 	}
 }
