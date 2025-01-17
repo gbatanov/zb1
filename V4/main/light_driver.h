@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-/* light intensity level */
+// light intensity level 
 #define LIGHT_DEFAULT_ON  1
 #define LIGHT_DEFAULT_OFF 0
 

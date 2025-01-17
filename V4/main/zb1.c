@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.4.2
+// 2024 GSB zb1 v0.4.3
 //
 
 #include "settings.h"
@@ -74,13 +74,11 @@ void app_main(void)
 
 #endif
 
-#ifdef USE_ISR
     gpio_pad_select_gpio(ECHO_PIN_NUM);
     gpio_set_direction(ECHO_PIN_NUM, GPIO_MODE_INPUT); // ECHO pin - input
 
     ESP_LOGI(TAG, "Deferred driver initialization %s", deferred_driver_init() ? "failed" : "successful");
 
-#endif
 
 #ifdef USE_TEMP_CHIP
     xTaskCreate(temp_chip_task, "temp_chip_task", 4096, NULL, 3, NULL);
