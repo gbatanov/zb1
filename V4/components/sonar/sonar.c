@@ -15,7 +15,6 @@ static esp_switch_callback_t func_ptr;
 
 static const char *TAG = "GSB_ZB_4_SONAR";
 
-static void echo_handler(uint32_t pin);
 uint32_t echo_pin ;
 // обработчик прерываний
 static void IRAM_ATTR gpio_isr_handler(void *arg)
@@ -87,7 +86,7 @@ bool switch_driver_init(uint32_t pin, esp_switch_callback_t cb)
     return true;
 }
 
-esp_err_t deferred_driver_init(uint32_t echopin)
+esp_err_t deferred_driver_init(uint32_t echopin, esp_switch_callback_t echo_handler)
 {
     echo_pin = echopin;
     static bool is_inited = false;
@@ -99,27 +98,4 @@ esp_err_t deferred_driver_init(uint32_t echopin)
         is_inited = true;
     }
     return is_inited ? ESP_OK : ESP_FAIL;
-}
-
-static void echo_handler(uint32_t pin)
-{
-
-    ESP_LOGI(TAG, "echo_handler %lu pin", pin);
-
-    bool value = !(bool)gpio_get_level(pin); // Почему инверсная логика???
-    if (value)
-    {
-        ESP_LOGI(TAG, "Sonar ON");
-        light_driver_set_red(40);
-        light_driver_set_green(0);
-        light_driver_set_blue(0);
-    }
-    else
-    {
-        ESP_LOGI(TAG, "Sonar OFF");
-        light_driver_set_red(0);
-        light_driver_set_green(40);
-        light_driver_set_blue(0);
-    }
-    light_driver_set_power(true);
 }

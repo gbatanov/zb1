@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.4.5
+// 2024 GSB zb1 v0.4.6
 //
 
 #include "settings.h"
@@ -54,6 +54,30 @@ void get_current_state()
 }
 
 
+void echo_handler(uint32_t pin)
+{
+
+    ESP_LOGI(TAG, "echo_handler %lu pin", pin);
+
+    bool value = !(bool)gpio_get_level(pin); // Почему инверсная логика???
+    if (value)
+    {
+        ESP_LOGI(TAG, "Sonar ON");
+        light_driver_set_red(40);
+        light_driver_set_green(0);
+        light_driver_set_blue(0);
+    }
+    else
+    {
+        ESP_LOGI(TAG, "Sonar OFF");
+        light_driver_set_red(0);
+        light_driver_set_green(40);
+        light_driver_set_blue(0);
+    }
+    light_driver_set_power(true);
+}
+
+
 void app_main(void)
 {
 
@@ -77,7 +101,7 @@ void app_main(void)
     gpio_pad_select_gpio(ECHO_PIN_NUM);
     gpio_set_direction(ECHO_PIN_NUM, GPIO_MODE_INPUT); // ECHO pin - input
 
-    ESP_LOGI(TAG, "Deferred driver initialization %s", deferred_driver_init(ECHO_PIN_NUM) ? "failed" : "successful");
+    ESP_LOGI(TAG, "Deferred driver initialization %s", deferred_driver_init(ECHO_PIN_NUM, echo_handler) ? "failed" : "successful");
 
 
 #ifdef USE_TEMP_CHIP

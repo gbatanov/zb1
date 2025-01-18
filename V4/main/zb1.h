@@ -45,6 +45,7 @@ extern "C"
     void update_attribute();
 #endif
 
+ void echo_handler(uint32_t pin);
  
 #ifdef __cplusplus
 }
