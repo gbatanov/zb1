@@ -99,7 +99,7 @@ void app_main(void)
     gpio_set_direction(ECHO_PIN_NUM, GPIO_MODE_INPUT); // ECHO pin - input
 
     ESP_LOGI(TAG,
-             "Deferred driver initialization %s",
+             "Sonar initialization %s",
              sonar_init(ECHO_PIN_NUM, echo_handler) ? "failed" : "successful");
 
 #ifdef USE_TEMP_CHIP
