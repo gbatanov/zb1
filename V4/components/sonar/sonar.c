@@ -15,7 +15,7 @@ static esp_switch_callback_t func_ptr;
 
 static const char *TAG = "GSB_ZB_4_SONAR";
 
-uint32_t echo_pin ;
+uint32_t echo_pin;
 // обработчик прерываний
 static void IRAM_ATTR gpio_isr_handler(void *arg)
 {
@@ -76,25 +76,16 @@ static bool switch_driver_gpio_init(uint32_t pin)
     return true;
 }
 
-bool switch_driver_init(uint32_t pin, esp_switch_callback_t cb)
-{
-    if (!switch_driver_gpio_init(pin))
-    {
-        return false;
-    }
-    func_ptr = cb;
-    return true;
-}
-
-esp_err_t deferred_driver_init(uint32_t echopin, esp_switch_callback_t echo_handler)
+esp_err_t sonar_init(uint32_t echopin, esp_switch_callback_t cb)
 {
     echo_pin = echopin;
     static bool is_inited = false;
     if (!is_inited)
     {
         ESP_RETURN_ON_FALSE(
-            switch_driver_init(echo_pin, echo_handler),
+            switch_driver_gpio_init(echo_pin),
             ESP_FAIL, TAG, "Failed to initialize switch driver");
+        func_ptr = cb;
         is_inited = true;
     }
     return is_inited ? ESP_OK : ESP_FAIL;

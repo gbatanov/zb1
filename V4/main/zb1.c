@@ -36,15 +36,14 @@ const char *TAG = V4TAG;
 bool light_state = 0;   // светодиод на плате
 bool connected = false; // подключен ли Zigbee
 
-bool motion_state = false;  // УЗ датчик движения 
-bool motion_state_act = false;  // УЗ датчик движения
+bool motion_state = false;     // УЗ датчик движения
+bool motion_state_act = false; // УЗ датчик движения
 
-#if  defined USE_TEMP_CHIP
+#if defined USE_TEMP_CHIP
 int16_t temperature = -100;
 float temp = 0;
 bool temp_change = false;
 #endif
-
 
 void get_current_state()
 {
@@ -52,7 +51,6 @@ void get_current_state()
     set_attribute();
 #endif
 }
-
 
 void echo_handler(uint32_t pin)
 {
@@ -77,7 +75,6 @@ void echo_handler(uint32_t pin)
     light_driver_set_power(true);
 }
 
-
 void app_main(void)
 {
 
@@ -101,8 +98,9 @@ void app_main(void)
     gpio_pad_select_gpio(ECHO_PIN_NUM);
     gpio_set_direction(ECHO_PIN_NUM, GPIO_MODE_INPUT); // ECHO pin - input
 
-    ESP_LOGI(TAG, "Deferred driver initialization %s", deferred_driver_init(ECHO_PIN_NUM, echo_handler) ? "failed" : "successful");
-
+    ESP_LOGI(TAG,
+             "Deferred driver initialization %s",
+             sonar_init(ECHO_PIN_NUM, echo_handler) ? "failed" : "successful");
 
 #ifdef USE_TEMP_CHIP
     xTaskCreate(temp_chip_task, "temp_chip_task", 4096, NULL, 3, NULL);
@@ -113,5 +111,4 @@ void app_main(void)
     light_driver_set_red(1);
     light_driver_set_blue(1);
     light_driver_set_power(true);
-
 }

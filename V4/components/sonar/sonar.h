@@ -14,8 +14,7 @@ extern "C"
 
 typedef void (*esp_switch_callback_t)(uint32_t pin);
 
-bool switch_driver_init(uint32_t pin, esp_switch_callback_t cb);
-esp_err_t deferred_driver_init(uint32_t,esp_switch_callback_t);
+esp_err_t sonar_init(uint32_t,esp_switch_callback_t);
 
 #ifdef __cplusplus
 } // extern "C"
