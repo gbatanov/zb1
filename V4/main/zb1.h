@@ -17,7 +17,7 @@
 #define ESP_ZB_PRIMARY_CHANNEL_MASK ESP_ZB_TRANSCEIVER_ALL_CHANNELS_MASK // Zigbee primary channel mask
 #define MANUFACTURER_NAME "GSB"
 #define MODEL_NAME "ZB4"
-#define FIRMWARE_VERSION "v0.4.1"
+#define FIRMWARE_VERSION "v0.4.7"
 
 #define ESP_ZB_ZED_CONFIG()                               \
     {                                                     \
@@ -35,7 +35,6 @@ extern "C"
 {
 #endif
 #ifdef USE_ZIGBEE
-    void get_current_state();
     void set_attribute();
     void send_onoff_cmd(uint8_t endpoint, uint8_t state);
     void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct);

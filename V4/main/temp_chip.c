@@ -32,16 +32,8 @@ void temp_chip_task(void *pvParameters)
     {
         temperature_sensor_get_celsius(temp_sensor, &tsens_value);
         int16_t tempInt16 = (int16_t)(tsens_value * 100);
-        if ((tempInt16 > temperature && tempInt16 - temperature > 49) ||
-            (tempInt16 < temperature && temperature - tempInt16 > 49))
-        {
-            temperature = tempInt16;
-#ifdef USE_ZIGBEE
-            reportAttribute(ZB1_ENDPOINT_1, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &temperature, 2);
-#else
-            ESP_LOGI(TAG, "Temperature value %.02f ℃", tsens_value);
-#endif
-        }
+        temperature = tempInt16;
+        ESP_LOGI(TAG, "Temperature value %.02f ℃", tsens_value);
 
         vTaskDelay(30000 / portTICK_PERIOD_MS); // меряем раз в 30 секунд
     }

@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.4.6
+// 2024 GSB zb1 v0.4.7
 //
 
 #include "settings.h"
@@ -45,18 +45,8 @@ float temp = 0;
 bool temp_change = false;
 #endif
 
-void get_current_state()
-{
-#ifdef USE_ZIGBEE
-    set_attribute();
-#endif
-}
-
 void echo_handler(uint32_t pin)
 {
-
-    ESP_LOGI(TAG, "echo_handler %lu pin", pin);
-
     bool value = !(bool)gpio_get_level(pin); // Почему инверсная логика???
     if (value)
     {
@@ -73,6 +63,12 @@ void echo_handler(uint32_t pin)
         light_driver_set_blue(0);
     }
     light_driver_set_power(true);
+    motion_state = value;
+    motion_state_act = true;
+#ifdef USE_ZIGBEE
+    send_onoff_cmd(ZB1_ENDPOINT_1, (uint8_t)motion_state);
+    set_attribute();
+#endif
 }
 
 void app_main(void)
