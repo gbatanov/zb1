@@ -6,7 +6,8 @@
 #include "light_driver.h"
 #include "sonar.h"
 
-// Этот драйвер заточен под сигнал с УЗ датчика (имитация переключателя, но неполная, без устранения дребезга и немного другая логика)
+// Этот драйвер заточен под сигнал с УЗ датчика (имитация переключателя,
+// но неполная, без устранения дребезга и немного другая логика)
 static QueueHandle_t gpio_evt_queue = NULL;
 
 // call back function pointer
@@ -16,64 +17,30 @@ static const char *TAG = "GSB_ZB_4_SONAR";
 
 static void switch_driver_gpios_intr_enabled(bool enabled);
 static void echo_handler(uint32_t pin);
-
+uint32_t echo_pin = ECHO_PIN_NUM;
 // обработчик прерываний
 static void IRAM_ATTR gpio_isr_handler(void *arg)
 {
     //  запрещаем прерывания
-    switch_driver_gpios_intr_enabled(false);
+    gpio_intr_disable(ECHO_PIN_NUM);
     // посылаем в очередь сообщений пару пин/функция
-    xQueueSendFromISR(gpio_evt_queue, NULL, NULL);
-}
-
-// Разрешение прерывания
-static void switch_driver_gpios_intr_enabled(bool enabled)
-{
-    if (enabled)
-        gpio_intr_enable(ECHO_PIN_NUM);
-    else
-        gpio_intr_disable(ECHO_PIN_NUM);
+    xQueueSendFromISR(gpio_evt_queue, &echo_pin, NULL);
 }
 
 // Задача определения измения состояния пина - входа с УЗ датчика
 static void echo_detect_task(void *arg)
 {
-    gpio_num_t io_num = GPIO_NUM_NC;
-    bool evt_flag = false;
+    uint32_t io_num;
 
     while (true)
     {
         // check if there is any queue received, if yes read out the button_func_pair
-        if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY))
+        if (xQueueReceive(gpio_evt_queue, (void *)&io_num, portMAX_DELAY))
         {
-            switch_driver_gpios_intr_enabled(false); // запрещаем прерывание на пине
-            evt_flag = true;
+            gpio_intr_disable(ECHO_PIN_NUM); // запрещаем прерывание на пине
+            (*func_ptr)(ECHO_PIN_NUM);
+            gpio_intr_enable(ECHO_PIN_NUM); // разрешаем прерывание на пине
         }
-        while (evt_flag)
-        {
-            // логику делаем такую - запоминаем текущее состояние,
-            // через 100 мс проверяем уровень, если изменился - считаем помехой и игнорируем,
-            // если остался - фиксируем в переменной для зигби и запрещаем прерывания на этом пине
-            // еще на 1 минуту
-            bool value1 = gpio_get_level(ECHO_PIN_NUM);
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-            bool value2 = gpio_get_level(ECHO_PIN_NUM);
-            if (value1 == value2)
-            {
-                // событие
-                // вызываем коллбэк-функцию для фиксации в аттрибуте зигби и зажигание цвета светодиода
-                (*func_ptr)(ECHO_PIN_NUM);
-                vTaskDelay(1000 * 60 / portTICK_PERIOD_MS);
-                switch_driver_gpios_intr_enabled(true);
-            }
-            else
-            {
-                // помеха
-                 switch_driver_gpios_intr_enabled(true);
-            }
-            evt_flag = false;
-        }
-        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
 
@@ -105,8 +72,7 @@ static bool switch_driver_gpio_init(uint32_t pin)
     xTaskCreate(echo_detect_task, "echo_detect_task", 4096, NULL, 10, NULL);
     // install gpio isr service
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
-    // добавляет обработчик прервания  gpio_isr_handler на пине button_func_pair->pin
-    // в качестве аргумента передается структура с пином и функцией обработки
+    // добавляет обработчик прервания  gpio_isr_handler на пине pin
     gpio_isr_handler_add(pin, gpio_isr_handler, NULL);
 
     return true;
@@ -138,9 +104,9 @@ esp_err_t deferred_driver_init(void)
 static void echo_handler(uint32_t pin)
 {
 
-    ESP_LOGI(TAG, "zb_buttons_handler %lu pin", pin);
+    ESP_LOGI(TAG, "echo_handler %lu pin", pin);
 
-    bool value = gpio_get_level(pin);
+    bool value = !(bool)gpio_get_level(pin); // Почему инверсная логика???
     if (value)
     {
         ESP_LOGI(TAG, "Sonar ON");
