@@ -15,14 +15,13 @@ static esp_switch_callback_t func_ptr;
 
 static const char *TAG = "GSB_ZB_4_SONAR";
 
-static void switch_driver_gpios_intr_enabled(bool enabled);
 static void echo_handler(uint32_t pin);
-uint32_t echo_pin = ECHO_PIN_NUM;
+uint32_t echo_pin ;
 // обработчик прерываний
 static void IRAM_ATTR gpio_isr_handler(void *arg)
 {
     //  запрещаем прерывания
-    gpio_intr_disable(ECHO_PIN_NUM);
+    gpio_intr_disable(echo_pin);
     // посылаем в очередь сообщений пару пин/функция
     xQueueSendFromISR(gpio_evt_queue, &echo_pin, NULL);
 }
@@ -37,9 +36,9 @@ static void echo_detect_task(void *arg)
         // check if there is any queue received, if yes read out the button_func_pair
         if (xQueueReceive(gpio_evt_queue, (void *)&io_num, portMAX_DELAY))
         {
-            gpio_intr_disable(ECHO_PIN_NUM); // запрещаем прерывание на пине
-            (*func_ptr)(ECHO_PIN_NUM);
-            gpio_intr_enable(ECHO_PIN_NUM); // разрешаем прерывание на пине
+            gpio_intr_disable(echo_pin); // запрещаем прерывание на пине
+            (*func_ptr)(echo_pin);
+            gpio_intr_enable(echo_pin); // разрешаем прерывание на пине
         }
     }
 }
@@ -88,13 +87,14 @@ bool switch_driver_init(uint32_t pin, esp_switch_callback_t cb)
     return true;
 }
 
-esp_err_t deferred_driver_init(void)
+esp_err_t deferred_driver_init(uint32_t echopin)
 {
+    echo_pin = echopin;
     static bool is_inited = false;
     if (!is_inited)
     {
         ESP_RETURN_ON_FALSE(
-            switch_driver_init(ECHO_PIN_NUM, echo_handler),
+            switch_driver_init(echo_pin, echo_handler),
             ESP_FAIL, TAG, "Failed to initialize switch driver");
         is_inited = true;
     }

@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.4.4
+// 2024 GSB zb1 v0.4.5
 //
 
 #include "settings.h"
@@ -77,7 +77,7 @@ void app_main(void)
     gpio_pad_select_gpio(ECHO_PIN_NUM);
     gpio_set_direction(ECHO_PIN_NUM, GPIO_MODE_INPUT); // ECHO pin - input
 
-    ESP_LOGI(TAG, "Deferred driver initialization %s", deferred_driver_init() ? "failed" : "successful");
+    ESP_LOGI(TAG, "Deferred driver initialization %s", deferred_driver_init(ECHO_PIN_NUM) ? "failed" : "successful");
 
 
 #ifdef USE_TEMP_CHIP

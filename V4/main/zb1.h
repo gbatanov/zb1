@@ -4,10 +4,9 @@
 #include "settings.h"
 #include "esp_zigbee_core.h"
 #include "light_driver.h"
-
 #include "sonar.h"
 
-
+#define ECHO_PIN_NUM GPIO_NUM_1
 
 #ifdef USE_ZIGBEE
 // Zigbee configuration
@@ -46,8 +45,7 @@ extern "C"
     void update_attribute();
 #endif
 
-    esp_err_t deferred_driver_init(void);
-
+ 
 #ifdef __cplusplus
 }
 #endif
