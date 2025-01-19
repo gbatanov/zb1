@@ -1,5 +1,5 @@
 //
-// distance = duration / 58  // duration - mks, distance - cm
+// Пример программного таймера. Дискретность очень грубая - 10мс.
 //
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"

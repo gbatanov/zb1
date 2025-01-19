@@ -17,13 +17,35 @@ static const char *TAG = "GSB_ZB_4_SONAR";
 uint32_t echo_pin; // пин, на который подключен вывод ECHO
 
 // обработчик прерываний
+// Обработчик прерывания должен постоянно находится в оперативной памяти (IRAM),
+// поэтому его следует пометить соответствующим атрибутом IRAM_ATTR.
 static void IRAM_ATTR gpio_isr_handler(void *arg)
 {
     //  запрещаем прерывания
     gpio_intr_disable(echo_pin);
+    // Переменные для переключения контекста
+    BaseType_t xHigherPriorityTaskWoken, xResult;
+    xHigherPriorityTaskWoken = pdFALSE;
+
     // посылаем в очередь сообщений пин (туда надо тупо что-то послать,
     // хотя у нас заранее известно на каком пине возникло прерывание)
-    xQueueSendFromISR(gpio_evt_queue, &echo_pin, NULL);
+    xResult = xQueueSendFromISR(gpio_evt_queue, &echo_pin, &xHigherPriorityTaskWoken);
+    // После завершения прерывания можно выполнять переключение контекста 
+    // путем вызова portYIELD_FROM_ISR. 
+    // Зачем это нужно? Допустим, в текущий момент выполняется низкоприоритетная 
+    // задача, а высокоприоритетная ожидает наступления некоторого прерывания. 
+    // Далее происходит прерывание, но по окончании работы обработчика прерываний 
+    // выполнение возвращается к текущей низкоприоритетной задаче, 
+    // а высокоприоритетная ожидает, пока закончится текущий квант времени. 
+    // Однако если после выполнения обработчика прерывания передать управление 
+    // планировщику ( portYIELD_FROM_ISR ), то он передаст управление 
+    // высокоприоритетной задаче, что позволяет значительно сократить время реакции системы на прерывание, 
+    // связанное с внешним событием.
+
+    if (xResult == pdPASS)
+    {
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    };
 }
 
 // Задача определения измения состояния пина - входа с УЗ датчика
@@ -51,8 +73,13 @@ static bool sonar_gpio_init(uint32_t pin)
 
     pin_bit_mask = (1ULL << pin);
 
-    // прерывание по любому фронту
-    io_conf.intr_type = GPIO_INTR_ANYEDGE;
+    // GPIO_INTR_DISABLE – отключено
+    // GPIO_INTR_POSEDGE – по изменению с 0 до 1
+    // GPIO_INTR_NEGEDGE – по изменению с 1 на 0
+    // GPIO_INTR_ANYEDGE – по любому изменению
+    // GPIO_INTR_LOW_LEVEL – по низкому уровню
+    // GPIO_INTR_HIGH_LEVEL – по высокому уровню
+    io_conf.intr_type = GPIO_INTR_ANYEDGE; // прерывание по любому фронту
     io_conf.pin_bit_mask = pin_bit_mask;
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pull_down_en = 0;
@@ -70,6 +97,14 @@ static bool sonar_gpio_init(uint32_t pin)
     // стартуем задачу сонара
     xTaskCreate(echo_detect_task, "echo_detect_task", 4096, NULL, 10, NULL);
     // устанавливаем службу прерываний
+    // gpio_install_isr_service() – если эта функция используется,
+    // служба ISR предоставляет глобальный обработчик прерываний GPIO,
+    // а отдельные обработчики для каждого из выводов регистрируются
+    // с помощью функции gpio_isr_handler_add().
+    // Это более простой для понимания программиста подход.
+    // Внутри gpio_install_isr_service() содержится вызов gpio_isr_register(),
+    // то есть сервис GPIO ISR берет на себя всю низкоуровневую работу,
+    // вам остается только создать обработчики событий.
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
     // добавляем обработчик прервания  gpio_isr_handler на пине pin
     gpio_isr_handler_add(pin, gpio_isr_handler, NULL);
