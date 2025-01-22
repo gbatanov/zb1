@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.4.8.2
+// 2024 GSB zb1 v0.4.8.3
 //
 
 #include "settings.h"
@@ -19,6 +19,7 @@
 #include "driver/gpio.h" // для использования пинов на ввод/вывод
 #include "rom/gpio.h"
 #include "driver/gptimer.h"
+#include "sonar.h"
 
 #ifdef USE_TEMP_CHIP
 #include "temp_chip.h"
@@ -48,10 +49,12 @@ bool temp_change = false;
 
 extern gptimer_handle_t gptimer;
 
-void echo_handler(uint32_t pin)
+void echo_handler(uint32_t value)
 {
-    bool value = !(bool)gpio_get_level(pin); // Почему инверсная логика???
-    if (value)
+
+    ESP_LOGI(TAG, "Sonar %0.1f", (double)value/ 58.0);
+
+    if (value > 50)
     {
         ESP_LOGI(TAG, "Sonar ON");
         light_driver_set_red(40);
@@ -96,6 +99,10 @@ void app_main(void)
 
     gpio_pad_select_gpio(ECHO_PIN_NUM);
     gpio_set_direction(ECHO_PIN_NUM, GPIO_MODE_INPUT); // ECHO pin - input
+    gpio_pad_select_gpio(TRIG_PIN_NUM);
+    gpio_set_direction(TRIG_PIN_NUM, GPIO_MODE_OUTPUT); // TRIG pin - output
+
+    timer_init();
 
     ESP_LOGI(TAG,
              "Sonar initialization %s",
@@ -104,7 +111,6 @@ void app_main(void)
 #ifdef USE_TEMP_CHIP
     xTaskCreate(temp_chip_task, "temp_chip_task", 4096, NULL, 3, NULL);
 #endif
-    timer_init();
     //    xTaskCreate(timer_task, "Timer_task", 4096, NULL, 5, NULL);
 
     light_driver_init(LIGHT_DEFAULT_ON);

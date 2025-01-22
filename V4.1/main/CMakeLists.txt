@@ -1,6 +1,6 @@
 idf_component_register(
     SRCS
-   gptimer.c
+   "gptimer.c"
   "zb1.c" 
  #   "zigbee.c"
   "temp_chip.c"
