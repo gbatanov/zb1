@@ -1,6 +1,7 @@
 #pragma once
 
 #include "driver/gpio.h"
+#include "driver/gptimer.h"
 
 #ifdef __cplusplus
 extern "C"

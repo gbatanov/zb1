@@ -6,7 +6,10 @@
 #include "light_driver.h"
 #include "sonar.h"
 
-#define ECHO_PIN_NUM GPIO_NUM_1
+#define ECHO_PIN_NUM GPIO_NUM_0
+#define TRIG_PIN_NUM GPIO_NUM_1
+//#define HC_SR04_TRIG_GPIO 1
+//#define HC_SR04_ECHO_GPIO 0
 
 #ifdef USE_ZIGBEE
 // Zigbee configuration
@@ -44,8 +47,9 @@ extern "C"
     void update_attribute();
 #endif
 
- void echo_handler(uint32_t pin);
- 
+    void echo_handler(uint32_t pin);
+    void timer_init();
+
 #ifdef __cplusplus
 }
 #endif

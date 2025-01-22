@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.4.8.1
+// 2024 GSB zb1 v0.4.8.2
 //
 
 #include "settings.h"
@@ -18,6 +18,7 @@
 #include "iot_button.h"
 #include "driver/gpio.h" // для использования пинов на ввод/вывод
 #include "rom/gpio.h"
+#include "driver/gptimer.h"
 
 #ifdef USE_TEMP_CHIP
 #include "temp_chip.h"
@@ -44,6 +45,8 @@ int16_t temperature = -100;
 float temp = 0;
 bool temp_change = false;
 #endif
+
+extern gptimer_handle_t gptimer;
 
 void echo_handler(uint32_t pin)
 {
@@ -96,11 +99,13 @@ void app_main(void)
 
     ESP_LOGI(TAG,
              "Sonar initialization %s",
-             sonar_init(ECHO_PIN_NUM, echo_handler) ? "failed" : "successful");
+             sonar_init(ECHO_PIN_NUM, TRIG_PIN_NUM, echo_handler) ? "failed" : "successful");
 
 #ifdef USE_TEMP_CHIP
     xTaskCreate(temp_chip_task, "temp_chip_task", 4096, NULL, 3, NULL);
 #endif
+    timer_init();
+    //    xTaskCreate(timer_task, "Timer_task", 4096, NULL, 5, NULL);
 
     light_driver_init(LIGHT_DEFAULT_ON);
     light_driver_set_green(1);
