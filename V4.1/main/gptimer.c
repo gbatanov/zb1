@@ -23,7 +23,7 @@ void timer_init()
     gptimer_config_t timer_config = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT, // Выбираем источник тактового сигнала для счетчиков
         .direction = GPTIMER_COUNT_UP,      // Устанавливаем направление счета
-        .resolution_hz = 1000000,           // 1MHz, 1 tick=1mks  // Устанавливаем частоту счета, то есть минимальный интервал времени на 1 тик
+        .resolution_hz = 12000000,           // 12MHz, 1 tick=0,125mks  
     };
 
     // Создаем дексриптор GP-таймера с указанными параметрами
@@ -41,5 +41,5 @@ void timer_init()
     gptimer_enable(gptimer);
     // Запускаем таймер
     gptimer_start(gptimer);
-    ESP_LOGI("main", "Hardware timer started");
+    ESP_LOGI(TAG, "Hardware timer started");
 } 

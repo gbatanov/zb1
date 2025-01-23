@@ -86,7 +86,7 @@ static void echo_detect_task(void *arg)
             //   ESP_LOGI(TAG, "Sonar %0.1f", (double)value / 58.0);
 
  //           func_ptr(value); // выполняем функцию
-            ESP_LOGI(TAG, "Sonar %0.1f", (double)value / 58.0);
+            ESP_LOGI(TAG, "Sonar %0.1f", (double)value / (58.0 * 12.5));
             vTaskDelay(pdMS_TO_TICKS(500));
         }
     }
