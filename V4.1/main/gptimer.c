@@ -20,6 +20,7 @@ gptimer_handle_t gptimer = NULL;
 void timer_init()
 {
     // Настраиваем параметры таймера
+    //  для ESP32H2 с частотой процессора 96 МГц 10МГц нельзя выставить, можно 12 МГц, 8МГц и т.п.
     gptimer_config_t timer_config = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT, // Выбираем источник тактового сигнала для счетчиков
         .direction = GPTIMER_COUNT_UP,      // Устанавливаем направление счета
