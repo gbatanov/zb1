@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.4.8
+// 2024 GSB zb1 v0.4.9
 //
 
 #include "settings.h"
@@ -45,11 +45,12 @@ float temp = 0;
 bool temp_change = false;
 #endif
 
-void echo_handler(uint32_t pin)
+bool echo_handler(uint32_t pin)
 {
     bool value = !(bool)gpio_get_level(pin); // Почему инверсная логика???
     if (value)
     {
+        // после срабатывания надо на 2 минуты отключить обработку
         ESP_LOGI(TAG, "Sonar ON");
         light_driver_set_red(40);
         light_driver_set_green(0);
@@ -69,6 +70,7 @@ void echo_handler(uint32_t pin)
     send_onoff_cmd(ZB1_ENDPOINT_1, (uint8_t)motion_state);
     set_attribute();
 #endif
+return value;
 }
 
 void app_main(void)

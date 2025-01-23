@@ -12,7 +12,7 @@ extern "C"
 #define GPIO_INPUT_LEVEL_OFF 0
 #define ESP_INTR_FLAG_DEFAULT 0
 
-typedef void (*sonar_callback_t)(uint32_t pin);
+typedef bool (*sonar_callback_t)(uint32_t pin);
 
 esp_err_t sonar_init(uint32_t,sonar_callback_t);
 
