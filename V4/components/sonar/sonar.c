@@ -62,7 +62,7 @@ static void echo_detect_task(void *arg)
             res = (*func_ptr)(echo_pin); // выполняем функцию
             do
             {
-                vTaskDelay(120000 / portTICK_PERIOD_MS); // задержка 2 минуты
+                vTaskDelay(300000 / portTICK_PERIOD_MS); // задержка 5 минут
                 res = (*func_ptr)(echo_pin);
             } while (res); // если все еще движение, ждем
             gpio_intr_enable(echo_pin); // разрешаем прерывание на пине

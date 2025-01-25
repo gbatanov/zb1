@@ -7,6 +7,7 @@
 #include "sonar.h"
 
 #define ECHO_PIN_NUM GPIO_NUM_1
+#define RELAY_PIN_NUM GPIO_NUM_12
 
 #ifdef USE_ZIGBEE
 // Zigbee configuration
