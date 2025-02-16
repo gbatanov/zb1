@@ -41,7 +41,7 @@ device_params_t client_params; // ??
 #if defined USE_TEMP_CHIP
 static void report_temperature()
 {
-#ifdef USE_ZIGBEE
+
     if (connected)
     {
         esp_zb_lock_acquire(portMAX_DELAY);
@@ -51,7 +51,7 @@ static void report_temperature()
                                      ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID,
                                      &temperature,
                                      false);
- //      esp_zb_lock_release();
+        //      esp_zb_lock_release();
         //        ESP_LOGI(TAG, "Set attribute");
 
         esp_zb_zcl_report_attr_cmd_t report_attr_cmd = {0};
@@ -63,15 +63,13 @@ static void report_temperature()
         report_attr_cmd.zcl_basic_cmd.dst_addr_u.addr_short = 0;
         report_attr_cmd.zcl_basic_cmd.dst_endpoint = 1;
 
-//      esp_zb_lock_acquire(portMAX_DELAY);
+        //      esp_zb_lock_acquire(portMAX_DELAY);
         esp_err_t err = esp_zb_zcl_report_attr_cmd_req(&report_attr_cmd);
         esp_zb_lock_release();
 
         if (err != ESP_OK)
             ESP_LOGW(TAG, "Reporting error");
-          
     }
-#endif
 }
 #endif
 
@@ -82,10 +80,7 @@ void update_attribute()
 {
     while (true)
     {
-        if (connected)
-        {
-            get_current_state();
-        }
+        set_attribute();
 
         vTaskDelay(60000 / portTICK_PERIOD_MS); // 1 раз в 60 секунд
     }
@@ -94,23 +89,23 @@ void update_attribute()
 void set_attribute()
 {
 
-#ifdef USE_ZIGBEE
     if (connected)
     {
+        esp_zb_lock_acquire(portMAX_DELAY);
+
         PresentValue = hall_state_act << 6 | hall_state << 2 | coridor_state_act << 5 | coridor_state << 1;
 
 #ifndef V1
         ESP_LOGI(TAG, "PresentValue 0x%04X", PresentValue);
 #endif
 
-        esp_zb_lock_acquire(portMAX_DELAY);
         esp_zb_zcl_set_attribute_val(ZB1_ENDPOINT_1,
                                      ESP_ZB_ZCL_CLUSTER_ID_MULTI_VALUE,
                                      ESP_ZB_ZCL_CLUSTER_SERVER_ROLE,
                                      ESP_ZB_ZCL_ATTR_MULTI_VALUE_PRESENT_VALUE_ID,
                                      &PresentValue,
                                      false);
-//        esp_zb_lock_release();
+        //        esp_zb_lock_release();
         //        ESP_LOGI(TAG, "Set attribute");
 
         esp_zb_zcl_report_attr_cmd_t report_attr_cmd = {0};
@@ -122,7 +117,7 @@ void set_attribute()
         report_attr_cmd.zcl_basic_cmd.dst_addr_u.addr_short = 0;
         report_attr_cmd.zcl_basic_cmd.dst_endpoint = 1;
 
-//        esp_zb_lock_acquire(portMAX_DELAY);
+        //        esp_zb_lock_acquire(portMAX_DELAY);
         esp_err_t err = esp_zb_zcl_report_attr_cmd_req(&report_attr_cmd);
         esp_zb_lock_release();
 
@@ -133,7 +128,6 @@ void set_attribute()
         report_temperature();
 #endif
     }
-#endif
 }
 
 void set_zcl_string(char *buffer, char *value)

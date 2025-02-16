@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.1.17
+// 2024-2025 GSB zb1 v0.1.18
 //
 
 #include "settings.h"
@@ -48,7 +48,9 @@ int16_t temperature = -100;
 float temp = 0;
 bool temp_change = false;
 #endif
-
+/*
+// Из портов, настроенных на вывод, читать нельзя!
+// Состояние храним в переменной
 void get_current_state()
 {
     coridor_state = (bool)gpio_get_level(GPIO_NUM_13);
@@ -59,7 +61,7 @@ void get_current_state()
     set_attribute();
 #endif
 }
-
+*/
 // Управление реле дежурного света в коридоре
 // Включается с координатора по датчику движения в коридоре
 void coridor_light_control(uint8_t value)
@@ -90,6 +92,14 @@ void hall_light_control(uint8_t value)
 
 void app_main(void)
 {
+    gpio_pad_select_gpio(GPIO_NUM_13);
+    gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT); // GPIO13 - на Реле2 Коридор
+    gpio_pad_select_gpio(GPIO_NUM_14);
+    gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT); // GPIO14 - на Реле3 Прихожая
+
+    // При перезапуске выключаем реле
+    coridor_light_control(0);
+    hall_light_control(0);
 
 #ifdef USE_ZIGBEE
     esp_zb_platform_config_t config = {
@@ -107,12 +117,7 @@ void app_main(void)
     xTaskCreate(update_attribute, "Update_attribute_value", 4096, NULL, 5, NULL);
 
 #endif
-    gpio_pad_select_gpio(GPIO_NUM_13);
-    gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT); // GPIO13 - на Реле2 Коридор
-    gpio_pad_select_gpio(GPIO_NUM_14);
-    gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT); // GPIO14 - на Реле3 Прихожая
-
-// xTaskCreate(TaskFunction, NameFunction, StackDepth, void* Parameters, Priority, TaskHandle)
+    // xTaskCreate(TaskFunction, NameFunction, StackDepth, void* Parameters, Priority, TaskHandle)
 
 #ifdef USE_TEMP_CHIP
     xTaskCreate(temp_chip_task, "temp_chip_task", 4096, NULL, 3, NULL);

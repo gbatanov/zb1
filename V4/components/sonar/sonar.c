@@ -53,6 +53,7 @@ static void echo_detect_task(void *arg)
 {
     uint32_t io_num;
     bool res = false;
+    bool started = false;
     while (true)
     {
         // Ждем появления сообщения в очереди и читаем при появлении
@@ -62,7 +63,13 @@ static void echo_detect_task(void *arg)
             res = (*func_ptr)(echo_pin); // выполняем функцию
             do
             {
-                vTaskDelay(300000 / portTICK_PERIOD_MS); // задержка 5 минут
+                if (started)
+                    vTaskDelay(300000 / portTICK_PERIOD_MS); // задержка 5 минут
+                else
+                {
+                    vTaskDelay(10000 / portTICK_PERIOD_MS); // задержка 10 секунд
+                   started = true;
+                }
                 res = (*func_ptr)(echo_pin);
             } while (res); // если все еще движение, ждем
             gpio_intr_enable(echo_pin); // разрешаем прерывание на пине
