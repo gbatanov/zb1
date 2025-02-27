@@ -17,7 +17,7 @@ menu "BMX280 Options"
         help
             Set the slave address of the sensor if you know it. The driver can
             automatically detect it if you don't know.
-        default BMX280_ADDRESS_DETECT
+        default BMX280_ADDRESS_LO
         config BMX280_ADDRESS_DETECT
             bool "Auto"
         config BMX280_ADDERSS_LO
@@ -66,7 +66,7 @@ menu "BMX280 Options"
 
         choice BMX280_DEFAULT_PRESSURE_OVERSAMPLING
             prompt "Pressure Oversampling"
-            default BMX280_DEFAULT_PRESSURE_OVERSAMPLING_NONE
+            default BMX280_DEFAULT_PRESSURE_OVERSAMPLING_X16
             help
                 Refer to BMP280/BME280 Datasheet for more information.
             config BMX280_DEFAULT_PRESSURE_OVERSAMPLING_NONE
@@ -85,7 +85,7 @@ menu "BMX280 Options"
 
         choice BMX280_DEFAULT_STANDBY
             prompt "Cyclic Measurement Standby Time"
-            default BMX280_DEFAULT_STANDBY_0M5
+            default BMX280_DEFAULT_STANDBY_1000M
             help
                 Refer to BMP280/BME280 Datasheet for more information.
             config BMX280_DEFAULT_STANDBY_0M5

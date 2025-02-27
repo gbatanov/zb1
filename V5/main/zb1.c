@@ -1,4 +1,4 @@
-// 2025 GSB zb1 v5.0.1
+// 2025 GSB zb1 v5.0.3
 // Датчик температуры и давления на балкон
 
 #include "settings.h"
@@ -42,6 +42,9 @@ BMP280_t bmp280_dev;
 int16_t temperature = -100;
 float temp = 0;
 bool temp_change = false;
+int16_t pressure = 0;
+float press = 0;
+bool press_change = false;
 
 
 // Инициализация шины. Должна быть одна для всех подключенных устройств.
@@ -70,8 +73,7 @@ static esp_err_t main_i2c_init()
     return ESP_OK;
 }
 
-// Задача получения температуры
-
+// Задача получения температуры и давления
 static void bmx280_task(void *pvParameters)
 {
 
@@ -93,14 +95,14 @@ static void bmx280_task(void *pvParameters)
                 {
                     do
                     {
-                        vTaskDelay(500 / portTICK_PERIOD_MS);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                     } while (bmx280_isSampling(&bmp280_dev));
 
-                    esp_err_t err = bmx280_readoutFloat(&bmp280_dev, &temp, NULL, NULL);
+                    esp_err_t err = bmx280_readoutFloat(&bmp280_dev, &temp, &press, NULL);
                     if (err == ESP_OK)
                     {
-                        // ESP_LOGI(TAG, "Read Values: temp = %.1f", temp);
-                        int16_t tempInt16 = (int16_t)(temp * 100);
+                        ESP_LOGI(TAG, "Read Values: temp = %.1f press = %0.2f (%0.2f)", temp, press, press * 0.00750062);
+                        int16_t tempInt16 = (int16_t)(temp * 100); // temp в сотых долях градуса
                         if ((tempInt16 > temperature && tempInt16 - temperature > 49) ||
                             (tempInt16 < temperature && temperature - tempInt16 > 49))
                         {

@@ -195,11 +195,11 @@ esp_err_t bmx280_write(BMP280_t *bmx280, uint8_t reg_addr, const uint8_t *din, s
     write_buf[0] = reg_addr;
 
     esp_err_t err;
-//    ESP_LOGI(TAG, "write regaddr: %02x ", write_buf[0]);
+    //    ESP_LOGI(TAG, "write regaddr: %02x ", write_buf[0]);
     for (int i = 0; i < size; i++)
     {
         write_buf[i + 1] = *(din + i);
- //       ESP_LOGI(TAG, "write  byte: 0x%02x", write_buf[i + 1]);
+        //       ESP_LOGI(TAG, "write  byte: 0x%02x", write_buf[i + 1]);
     }
     err = i2c_master_transmit(bmx280->_i2c_dev_handle, write_buf, size + 1, I2C_TICKS_TO_WAIT);
 
@@ -248,6 +248,9 @@ esp_err_t bmx280_calibrate(BMP280_t *bmx280)
     bmx280->cmps.P8 = buf[20] | (buf[21] << 8);
     bmx280->cmps.P9 = buf[22] | (buf[23] << 8);
     ESP_LOGI(TAG, "Calibration T1 %d T2 %d T3 %d", bmx280->cmps.T1, bmx280->cmps.T2, bmx280->cmps.T3);
+    ESP_LOGI(TAG, "Calibration P1 %d P2 %d P3 %d", bmx280->cmps.P1, bmx280->cmps.P2, bmx280->cmps.P3);
+    ESP_LOGI(TAG, "Calibration P4 %d P5 %d P6 %d", bmx280->cmps.P4, bmx280->cmps.P5, bmx280->cmps.P6);
+    ESP_LOGI(TAG, "Calibration P7 %d P8 %d P9 %d", bmx280->cmps.P7, bmx280->cmps.P8, bmx280->cmps.P9);
     return ESP_OK;
 }
 
@@ -265,11 +268,11 @@ esp_err_t bmx280_setMode(BMP280_t *bmx280, bmx280_mode_t mode)
         ESP_LOGI(TAG, "control_mes: get error");
         return err;
     }
-//    ESP_LOGI(TAG, "control_mes: %d", ctrl_mes);
-//   ESP_LOGI(TAG, "set mode: %d", mode);
+    //    ESP_LOGI(TAG, "control_mes: %d", ctrl_mes);
+    //   ESP_LOGI(TAG, "set mode: %d", mode);
 
     ctrl_mes = (ctrl_mes & 0b11111100) | (uint8_t)mode;
- //   ESP_LOGI(TAG, "set control_mes: %02x", ctrl_mes);
+    //   ESP_LOGI(TAG, "set control_mes: %02x", ctrl_mes);
 
     return bmx280_write(bmx280, BMX280_REG_MESCTL, &ctrl_mes, 1);
 }
@@ -310,7 +313,7 @@ bool bmx280_isSampling(BMP280_t *bmx280)
 // t_fine carries fine temperature as global value
 int32_t BME280_compensate_T_int32(BMP280_t *bmx280, int32_t adc_T)
 {
-     int32_t var1, var2, T;
+    int32_t var1, var2, T;
     var1 = ((((adc_T >> 3) - ((int32_t)bmx280->cmps.T1 << 1))) * ((int32_t)bmx280->cmps.T2)) >> 11;
     var2 = (((((adc_T >> 4) - ((int32_t)bmx280->cmps.T1)) * ((adc_T >> 4) - ((int32_t)bmx280->cmps.T1))) >> 12) * ((int32_t)bmx280->cmps.T3)) >> 14;
     bmx280->t_fine = var1 + var2;
@@ -323,6 +326,7 @@ int32_t BME280_compensate_T_int32(BMP280_t *bmx280, int32_t adc_T)
 uint32_t BME280_compensate_P_int64(BMP280_t *bmx280, int32_t adc_P)
 {
     int64_t var1, var2, p;
+
     var1 = ((int64_t)bmx280->t_fine) - 128000;
     var2 = var1 * var1 * (int64_t)bmx280->cmps.P6;
     var2 = var2 + ((var1 * (int64_t)bmx280->cmps.P5) << 17);
@@ -355,18 +359,16 @@ esp_err_t bmx280_readout(BMP280_t *bmx280, int32_t *temperature, uint32_t *press
     // считываем сразу 3 байта - MSB LSB XSB 0x80 0x00 0x00 - это сброшенное состояние
     if ((error = bmx280_read(bmx280, BMX280_REG_TEMP_MSB, buffer, 3)) != ESP_OK)
         return error;
- //   ESP_LOGI(TAG, "Temperature MSB: %02X LSB:%02X XSB:%02X ", buffer[0], buffer[1], buffer[2]);
+    ESP_LOGI(TAG, "Temperature MSB: %02X LSB:%02X XSB:%02X ", buffer[0], buffer[1], buffer[2]);
 
-    *temperature = BME280_compensate_T_int32(bmx280,
-                                             (buffer[0] << 12) | (buffer[1] << 4) | (buffer[2] >> 4));
+    *temperature = BME280_compensate_T_int32(bmx280, (buffer[0] << 12) | (buffer[1] << 4) | (buffer[2] >> 4));
 
     if (pressure)
     {
         if ((error = bmx280_read(bmx280, BMX280_REG_PRES_MSB, buffer, 3)) != ESP_OK)
             return error;
 
-        *pressure = BME280_compensate_P_int64(bmx280,
-                                              (buffer[0] << 12) | (buffer[1] << 4) | (buffer[0] >> 4));
+        *pressure = BME280_compensate_P_int64(bmx280, (buffer[0] << 12) | (buffer[1] << 4) | (buffer[2] >> 4));
     }
 
     *humidity = UINT32_MAX;
