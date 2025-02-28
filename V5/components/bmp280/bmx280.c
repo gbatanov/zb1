@@ -89,7 +89,7 @@ extern i2c_master_bus_handle_t bus_handle;
 // Добавление устройства bmp280 на шину
 void i2c_bus_add_bmp280(BMP280_t *dev, i2c_port_t i2c_num)
 {
-    ESP_LOGI(TAG, "New i2c driver is used");
+    //   ESP_LOGI(TAG, "New i2c driver is used");
 
     i2c_device_config_t dev_cfg = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
@@ -133,8 +133,8 @@ esp_err_t bmx280_init(BMP280_t *bmx280)
         // Read calibration data.
         bmx280_calibrate(bmx280);
 
-        ESP_LOGI("bmx280", "Dumping calibration...");
-        ESP_LOG_BUFFER_HEX("bmx280", &bmx280->cmps, sizeof(bmx280->cmps));
+        //       ESP_LOGI("bmx280", "Dumping calibration...");
+        //       ESP_LOG_BUFFER_HEX("bmx280", &bmx280->cmps, sizeof(bmx280->cmps));
     }
 
     return error;
@@ -222,7 +222,7 @@ esp_err_t bmx280_calibrate(BMP280_t *bmx280)
     //
     // Write and pray to optimizations is my new motto.
 
-    ESP_LOGI(TAG, "Reading out calibration values...");
+    //   ESP_LOGI(TAG, "Reading out calibration values...");
 
     esp_err_t err;
     uint8_t buf[26];
@@ -233,7 +233,7 @@ esp_err_t bmx280_calibrate(BMP280_t *bmx280)
     if (err != ESP_OK)
         return err;
 
-    ESP_LOGI(TAG, "Read Low Bank.");
+    //   ESP_LOGI(TAG, "Read Low Bank.");
 
     bmx280->cmps.T1 = buf[0] | (buf[1] << 8);
     bmx280->cmps.T2 = buf[2] | (buf[3] << 8);
@@ -247,10 +247,10 @@ esp_err_t bmx280_calibrate(BMP280_t *bmx280)
     bmx280->cmps.P7 = buf[18] | (buf[19] << 8);
     bmx280->cmps.P8 = buf[20] | (buf[21] << 8);
     bmx280->cmps.P9 = buf[22] | (buf[23] << 8);
-    ESP_LOGI(TAG, "Calibration T1 %d T2 %d T3 %d", bmx280->cmps.T1, bmx280->cmps.T2, bmx280->cmps.T3);
-    ESP_LOGI(TAG, "Calibration P1 %d P2 %d P3 %d", bmx280->cmps.P1, bmx280->cmps.P2, bmx280->cmps.P3);
-    ESP_LOGI(TAG, "Calibration P4 %d P5 %d P6 %d", bmx280->cmps.P4, bmx280->cmps.P5, bmx280->cmps.P6);
-    ESP_LOGI(TAG, "Calibration P7 %d P8 %d P9 %d", bmx280->cmps.P7, bmx280->cmps.P8, bmx280->cmps.P9);
+    //  ESP_LOGI(TAG, "Calibration T1 %d T2 %d T3 %d", bmx280->cmps.T1, bmx280->cmps.T2, bmx280->cmps.T3);
+    //  ESP_LOGI(TAG, "Calibration P1 %d P2 %d P3 %d", bmx280->cmps.P1, bmx280->cmps.P2, bmx280->cmps.P3);
+    //  ESP_LOGI(TAG, "Calibration P4 %d P5 %d P6 %d", bmx280->cmps.P4, bmx280->cmps.P5, bmx280->cmps.P6);
+    //  ESP_LOGI(TAG, "Calibration P7 %d P8 %d P9 %d", bmx280->cmps.P7, bmx280->cmps.P8, bmx280->cmps.P9);
     return ESP_OK;
 }
 
@@ -359,7 +359,7 @@ esp_err_t bmx280_readout(BMP280_t *bmx280, int32_t *temperature, uint32_t *press
     // считываем сразу 3 байта - MSB LSB XSB 0x80 0x00 0x00 - это сброшенное состояние
     if ((error = bmx280_read(bmx280, BMX280_REG_TEMP_MSB, buffer, 3)) != ESP_OK)
         return error;
-    ESP_LOGI(TAG, "Temperature MSB: %02X LSB:%02X XSB:%02X ", buffer[0], buffer[1], buffer[2]);
+//    ESP_LOGI(TAG, "Temperature MSB: %02X LSB:%02X XSB:%02X ", buffer[0], buffer[1], buffer[2]);
 
     *temperature = BME280_compensate_T_int32(bmx280, (buffer[0] << 12) | (buffer[1] << 4) | (buffer[2] >> 4));
 

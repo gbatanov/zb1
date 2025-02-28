@@ -3,5 +3,6 @@ idf_component_register(
    "zb1.c"
     "light_driver.c"
     "zigbee.c"
+    "temp_chip.c"
     INCLUDE_DIRS  "../components"
 )

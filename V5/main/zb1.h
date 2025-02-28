@@ -33,7 +33,7 @@
 extern "C"
 {
 #endif
-    void get_current_state();
+
     void set_attribute();
 
     void esp_zb_app_signal_handler(esp_zb_app_signal_t *signal_struct);

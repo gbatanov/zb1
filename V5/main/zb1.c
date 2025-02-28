@@ -1,4 +1,4 @@
-// 2025 GSB zb1 v5.0.3
+// 2025 GSB zb1 v5.1.1
 // Датчик температуры и давления на балкон
 
 #include "settings.h"
@@ -21,6 +21,10 @@
 #include "driver/i2c_master.h"
 #include "bmx280.h"
 
+#ifdef USE_TEMP_CHIP
+#include "temp_chip.h"
+#endif
+
 #include "zb1.h"
 
 SemaphoreHandle_t i2c_semaphore = NULL;
@@ -37,7 +41,6 @@ const char *TAG = V0TAG;
 bool light_state = 0;   // светодиод на плате
 bool connected = false; // подключен ли Zigbee
 
-
 BMP280_t bmp280_dev;
 int16_t temperature = -100;
 float temp = 0;
@@ -46,6 +49,11 @@ int16_t pressure = 0;
 float press = 0;
 bool press_change = false;
 
+#if defined USE_TEMP_CHIP
+int16_t chip_temperature = -100;
+float chip_temp = 0;
+bool chip_temp_change = false;
+#endif
 
 // Инициализация шины. Должна быть одна для всех подключенных устройств.
 static esp_err_t main_i2c_init()
@@ -57,9 +65,9 @@ static esp_err_t main_i2c_init()
     i2c_semaphore = xSemaphoreCreateMutex();
     if (i2c_semaphore == NULL)
         return ESP_FAIL;
-
+#ifdef V0_LOG
     ESP_LOGI(TAG, "New i2c driver is used");
-
+#endif
     i2c_master_bus_config_t i2c_mst_config = {
         .clk_source = I2C_CLK_SRC_DEFAULT,
         .glitch_ignore_cnt = 7,
@@ -98,41 +106,48 @@ static void bmx280_task(void *pvParameters)
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                     } while (bmx280_isSampling(&bmp280_dev));
 
+                    temp_change = false;
+                    press_change = false;
                     esp_err_t err = bmx280_readoutFloat(&bmp280_dev, &temp, &press, NULL);
                     if (err == ESP_OK)
                     {
-                        ESP_LOGI(TAG, "Read Values: temp = %.1f press = %0.2f (%0.2f)", temp, press, press * 0.00750062);
-                        int16_t tempInt16 = (int16_t)(temp * 100); // temp в сотых долях градуса
-                        if ((tempInt16 > temperature && tempInt16 - temperature > 49) ||
-                            (tempInt16 < temperature && temperature - tempInt16 > 49))
+                        int16_t tempInt16 = (int16_t)(temp * 100);   // temp в сотых долях градуса
+                        int16_t pressInt16 = (int16_t)(press / 100); // по спецификации передаем в 0.1kPa (1003, например)
+#ifdef V0_LOG
+                        ESP_LOGI(TAG, "Read Values: temperature = %.1f pressure = %.1f Pa, %d kPa*10", temp, press, pressInt16);
+#endif
+                        if (tempInt16 != temperature)
                         {
                             temperature = tempInt16;
-#ifdef USE_ZIGBEE
-                            reportAttribute(ZB1_ENDPOINT_1, ESP_ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT, ESP_ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID, &temperature, 2);
-#endif
+                            temp_change = true;
                         }
+                        if (pressInt16 != pressure)
+                        {
+                            pressure = pressInt16; // на приеме умножить на 100 и на коэффициентперевода паскалей в мм.рт.столба
+                            press_change = true;
+                        }
+#ifdef USE_ZIGBEE
+//                        if (temp_change || press_change)
+//                            set_attribute();
+#endif
                     }
                     else
                     {
+#ifdef V0_LOG
                         ESP_LOGI(TAG, "Read Values error");
+#endif
                     }
                 }
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                res = bmx280_setMode(&bmp280_dev, BMX280_MODE_SLEEP);
+                vTaskDelay(30000 / portTICK_PERIOD_MS);
             } // while
         }
     }
+#ifdef V0_LOG
     ESP_LOGI(TAG, "Device BMP280 - error");
+#endif
     vTaskDelete(NULL);
 }
-
-
-void get_current_state()
-{
-#ifdef USE_ZIGBEE
-    set_attribute();
-#endif
-}
-
 
 void app_main(void)
 {
@@ -156,9 +171,13 @@ void app_main(void)
 
 #endif
 
-// xTaskCreate(TaskFunction, NameFunction, StackDepth, void* Parameters, Priority, TaskHandle)
+    // xTaskCreate(TaskFunction, NameFunction, StackDepth, void* Parameters, Priority, TaskHandle)
 
     xTaskCreate(bmx280_task, "bmx280_task", 4096, NULL, 3, NULL);
+
+#ifdef USE_TEMP_CHIP
+    xTaskCreate(temp_chip_task, "temp_chip_task", 4096, NULL, 3, NULL);
+#endif
 
     light_driver_init(LIGHT_DEFAULT_ON);
     light_driver_set_green(45);
