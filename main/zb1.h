@@ -15,7 +15,7 @@
 #define ESP_ZB_PRIMARY_CHANNEL_MASK ESP_ZB_TRANSCEIVER_ALL_CHANNELS_MASK // Zigbee primary channel mask
 #define MANUFACTURER_NAME "GSB"
 #define MODEL_NAME "ZB0"
-#define FIRMWARE_VERSION "v0.0.3"
+#define FIRMWARE_VERSION "v0.0.8"
 
 #define ESP_ZB_ZED_CONFIG()                               \
     {                                                     \

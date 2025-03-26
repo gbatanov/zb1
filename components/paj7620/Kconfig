@@ -1,0 +1,16 @@
+menu "PAJ7620 Gesture Sensor"
+        config GESTURE_SENSOR_ADDR
+            hex "Gesture Sensor I2C Address"
+            default 0x73
+            help
+                I2C address of the Gesture Sensor.
+
+        config GESTURE_DURATION
+            int "Gesture Duration (ms)"
+            default 500
+            help
+                The amount of time it takes to perform a gesture, in milliseconds.
+
+endmenu
+
+

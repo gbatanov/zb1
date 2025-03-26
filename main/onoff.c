@@ -16,6 +16,31 @@
 
 static const char *TAG = V0TAG;
 
+// Регистрация кнопок
+void register_buttons()
+{
+    // Кнопка BOOT
+    // create gpio button
+    button_config_t gpio_btn_cfg = {
+        .type = BUTTON_TYPE_GPIO,
+        .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,   // 1500ms
+        .short_press_time = CONFIG_BUTTON_SHORT_PRESS_TIME_MS, // 180ms
+        .gpio_button_config = {
+            .gpio_num = GPIO_NUM_9, //  кнопка BOOT
+            .active_level = 0,
+        },
+    };
+
+    button_handle_t gpio_btn9 = iot_button_create(&gpio_btn_cfg);
+    if (NULL == gpio_btn9)
+    {
+        ESP_LOGE("Button boot", "Button create failed");
+    }
+
+    iot_button_register_cb(gpio_btn9, BUTTON_SINGLE_CLICK, button_single_click_cb, NULL);
+    //	iot_button_register_cb(gpio_btn, BUTTON_LONG_PRESS_START, button_long_press_cb, NULL);
+}
+
 #ifdef USE_ISR_BUTTON
 #include "switch_driver0.h"
 

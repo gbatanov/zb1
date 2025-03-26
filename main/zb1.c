@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v0.0.7
+// 2024 GSB zb1 v0.0.8
 //
 
 #include "settings.h"
@@ -19,16 +19,21 @@
 #include "driver/gpio.h" // для использования пинов на ввод/вывод
 #include "rom/gpio.h"
 
-#ifdef USE_TEMP_CHIP
-#include "temp_chip.h"
-#endif
-
 #ifdef USE_I2C
 #define I2C_NUM I2C_NUM_0
 
 #include "driver/i2c_master.h"
 SemaphoreHandle_t i2c_semaphore = NULL;
 i2c_master_bus_handle_t bus_handle;
+
+#ifdef USE_GESTURE
+#include "paj7620.h"
+extern i2c_master_dev_handle_t dev_handle;
+extern SemaphoreHandle_t print_mux;
+#endif
+
+#ifdef USE_TEMP_CHIP
+#include "temp_chip.h"
 #endif
 
 #ifdef USE_DISPLAY
@@ -37,6 +42,8 @@ i2c_master_bus_handle_t bus_handle;
 
 #ifdef USE_BMP280
 #include "bmx280.h"
+#endif
+
 #endif
 
 #include "gsbtimer.h"
@@ -279,7 +286,7 @@ void app_main(void)
 #ifdef USE_ISR_BUTTON
     ESP_LOGI(TAG, "Deferred driver initialization %s", deferred_driver_init() ? "failed" : "successful");
 #else
- //   register_buttons();
+    //   register_buttons();
 #endif
 
 // xTaskCreate(TaskFunction, NameFunction, StackDepth, void* Parameters, Priority, TaskHandle)
@@ -296,6 +303,12 @@ void app_main(void)
 #ifdef USE_SONAR
     xTaskCreate(sonar_task, "sonar_task", 4096, NULL, 3, NULL);
 #endif
+
+#ifdef USE_GESTURE
+    print_mux = xSemaphoreCreateMutex();
+    xTaskCreate(i2c_test_task, "i2c_test_task", 1024 * 2, (void *)1, 10, NULL);
+#endif
+
     light_driver_init(LIGHT_DEFAULT_ON);
     light_driver_set_green(45);
     light_driver_set_red(10);
@@ -317,3 +330,36 @@ void app_main(void)
     };
 #endif
 }
+/*
+// Обработчик кнопки BOOT (одиночный клик)
+void button_single_click_cb(void *arg, void *usr_data)
+{
+    ESP_LOGI("Button boot", "Single click");
+    take_photo();
+}
+
+// Регистрация кнопок
+void register_buttons()
+{
+    // Кнопка BOOT
+    // create gpio button
+    button_config_t gpio_btn_cfg = {
+        .type = BUTTON_TYPE_GPIO,
+        .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,   // 1500ms
+        .short_press_time = CONFIG_BUTTON_SHORT_PRESS_TIME_MS, // 180ms
+        .gpio_button_config = {
+            .gpio_num = GPIO_NUM_9, //  кнопка BOOT
+            .active_level = 0,
+        },
+    };
+
+    button_handle_t gpio_btn9 = iot_button_create(&gpio_btn_cfg);
+    if (NULL == gpio_btn9)
+    {
+        ESP_LOGE("Button boot", "Button create failed");
+    }
+
+    iot_button_register_cb(gpio_btn9, BUTTON_SINGLE_CLICK, button_single_click_cb, NULL);
+    //	iot_button_register_cb(gpio_btn, BUTTON_LONG_PRESS_START, button_long_press_cb, NULL);
+}
+    */
