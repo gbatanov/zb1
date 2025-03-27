@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v6.0.2
+// 2024 GSB zb1 v6.0.4
 //
 
 #include "settings.h"
@@ -63,10 +63,8 @@ static esp_err_t main_i2c_init()
     if (i2c_semaphore == NULL)
         return ESP_FAIL;
 
-    ESP_LOGI(TAG, "New i2c driver is used");
-
-    i2c_master_bus_config_t i2c_mst_config = {
-        .clk_source = I2C_CLK_SRC_DEFAULT,
+    i2c_master_bus_config_t i2c_master_config = {
+        .clk_source = I2C_CLK_SRC_DEFAULT,// это не CONFIG_I2C_MASTER_FREQ_HZ !
         .glitch_ignore_cnt = 7,
         .i2c_port = I2C_NUM,
         .scl_io_num = CONFIG_SCL_GPIO,
@@ -74,7 +72,7 @@ static esp_err_t main_i2c_init()
         .flags.enable_internal_pullup = true,
     };
 
-    ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_mst_config, &bus_handle));
+    ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_master_config, &bus_handle));
     return ESP_OK;
 }
 

@@ -384,11 +384,9 @@ void gesture_task(void *arg)
                 if (ret != ESP_OK)
                 {
                     if (ges != NULL)
-                    {
                         free((void *)ges);
-                    }
 
-                    vTaskDelay((DELAY_TIME_BETWEEN_ITEMS_MS * 2) / portTICK_PERIOD_MS);
+                    vTaskDelay(DELAY_TIME_BETWEEN_ITEMS_MS  / portTICK_PERIOD_MS);
                     continue;
                 }
 
@@ -412,6 +410,6 @@ void gesture_task(void *arg)
             ESP_LOGW(TAG, "%s: No ack, sensor not connected...skip...", esp_err_to_name(ret));
         }
         xSemaphoreGive(print_mux);
-        vTaskDelay((DELAY_TIME_BETWEEN_ITEMS_MS * 2) / portTICK_PERIOD_MS);
+        vTaskDelay(DELAY_TIME_BETWEEN_ITEMS_MS  / portTICK_PERIOD_MS);
     }
 }
