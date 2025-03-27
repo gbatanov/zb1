@@ -1,0 +1,16 @@
+menu "I2C Settings"
+        config SCL_GPIO
+            int "I2C SCL pin"
+            default 4
+            help
+                I2C SCL pin.
+
+        config SDA_GPIO
+            int "I2C SDA pin"
+            default 3
+            help
+                I2C SCL pin.
+
+endmenu
+
+
