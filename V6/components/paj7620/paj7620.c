@@ -96,7 +96,7 @@ int init_gesture_array[][2] = {
     {0x74, 0x00}, // Set gesture mode
     {0xEF, 0x00}, // Bank 0
     {0x41, 0xFF}, // Re-enable interrupts for first 8 gestures
-    {0x42, 0x01}, // Re-enable interrupts for wave gesture
+    {0x42, 0xFF}, // Re-enable interrupts for wave gesture
 };
 
 // Register values for proximity mode initialization.
@@ -171,7 +171,7 @@ esp_err_t i2c_register_write(i2c_master_dev_handle_t dev_handle, uint8_t reg_add
 }
 
 // Returns a string describing the gesture, given the numerical reading value as input.
-const char *gesture_str(uint8_t *ges)
+const char *gesture_str(uint16_t *ges)
 {
     switch (*ges)
     {
@@ -242,7 +242,7 @@ const char *gesture_str(uint8_t *ges)
         break;
 
     default:
-        ESP_LOGI(TAG, "no gesture: 0x%#02x", *ges);
+        //        ESP_LOGI(TAG, "no gesture: %#04x", *ges);
         return "none";
     }
 }
@@ -301,54 +301,28 @@ static esp_err_t paj7620_set_mode(Dev_PAJ7620 *dev, uint8_t mode)
         }
 
         ESP_LOGI(TAG, "Gesture mode is initialized.");
-
-        vTaskDelay(30 / portTICK_PERIOD_MS);
-
-        return ret;
     }
     else if (mode == 1)
     {
         // Initialize proximity mode
-        // Proximity Registers - Bank 0
-        //  Documentation best in v0.8 datasheet
-        //  Only available in Proximity Detection (PS) mode
-        // #define PAJ7620_ADDR_BASE                 0x00
-        // #define PAJ7620_REGISTER_BANK_SEL         (PAJ7620_ADDR_BASE + 0xEF)  - CHANGE_BANK_ADDR
-        // note Readonly - Single bit[0] - Approach == 1, Not approach == 0
-        // #define PAJ7620_ADDR_PS_APPROACH_STATE    (PAJ7620_ADDR_BASE + 0x6B)
-        // Readonly - PS 8 bit data - 255 is "near", lower is "further"
-        // #define PAJ7620_ADDR_S_AVE_Y_BRIGHTNESS   (PAJ7620_ADDR_BASE + 0x6C)
 
         // Get length of array.
         size_t ps_arr_len = sizeof init_ps_array / sizeof *init_ps_array;
 
         for (int i = 0; i < ps_arr_len; i++)
         {
-            ESP_LOGI(TAG, "Initializing proximity mode: {%#02x, %#02x}", init_ps_array[i][0], init_ps_array[i][1]);
+            // ESP_LOGI(TAG, "Initializing proximity mode: {%#02x, %#02x}", init_ps_array[i][0], init_ps_array[i][1]);
 
             ret = i2c_register_write_byte(dev_handle, init_ps_array[i][0], init_ps_array[i][1]);
             if (ret != ESP_OK)
                 return ret;
         }
 
-        ESP_LOGI(TAG, "Proximiy mode is initialized.");
-
-        vTaskDelay(30 / portTICK_PERIOD_MS);
-        for (int i = 0; i < 30; i++)
-        {
-            uint8_t state = 0xff;
-            ret = i2c_register_read(dev_handle, PAJ7620_ADDR_PS_APPROACH_STATE, &state, 1);
-            if (ret == ESP_OK)
-                ESP_LOGI(TAG, "proximity state: %#02x", state & 0x01);
-
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-            ret = i2c_register_read(dev_handle, PAJ7620_ADDR_S_AVE_Y_BRIGHTNESS, &state, 1);
-            if (ret == ESP_OK)
-                ESP_LOGI(TAG, "proximity level: %#02x", state);
-
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
+        // ESP_LOGI(TAG, "Proximiy mode is initialized.");
     }
+    dev->mode = mode;
+    vTaskDelay(30 / portTICK_PERIOD_MS);
+
     return ESP_OK;
 }
 
@@ -396,7 +370,7 @@ esp_err_t paj7620_init(Dev_PAJ7620 *dev, uint8_t mode, uint8_t speed)
     ret = paj7620_set_mode(dev, mode);
 
     if (mode == 0)
-        ret = gesture_set_speed(dev,speed); // 0 - normal, 1 - gaming
+        ret = gesture_set_speed(dev, speed); // 0 - normal, 1 - gaming
 
     vTaskDelay(30 / portTICK_PERIOD_MS);
 
@@ -417,36 +391,50 @@ void i2c_bus_add_paj7620(Dev_PAJ7620 *devPaj7620)
 
 void gesture_task(void *arg)
 {
-    int ret;
+    esp_err_t ret = ESP_OK;
 
     Dev_PAJ7620 *devPaj7620 = (Dev_PAJ7620 *)arg;
     i2c_master_dev_handle_t dev_handle = devPaj7620->dev_handle;
 
- 
     uint8_t *ges = (uint8_t *)malloc(sizeof(uint8_t) * 2);
+    uint8_t state = 0;
+    uint8_t level = 0;
 
     while (1)
     {
-        *ges = 0;ges++;  
-        *ges = 0;ges--;
-        
-        ret = i2c_register_read(dev_handle, PAJ_INT_FLAG1, ges, sizeof(uint8_t) * 2);
-        if (ret != ESP_OK)
-        {
-            vTaskDelay(DELAY_TIME_BETWEEN_ITEMS_MS / portTICK_PERIOD_MS);
-            continue;
-        }
+        *ges = 0;
+        ges++;
+        *ges = 0;
+        ges--;
 
-        if (ges != NULL)
+        if (devPaj7620->mode == 0)
         {
-            const char *ges_str = gesture_str(ges);
+            ret = i2c_register_read(dev_handle, PAJ_INT_FLAG1, ges, sizeof(uint8_t) * 2);
+            if (ret != ESP_OK)
+            {
+                vTaskDelay(DELAY_TIME_BETWEEN_ITEMS_MS / portTICK_PERIOD_MS);
+                continue;
+            }
+            const char *ges_str = gesture_str((uint16_t *)ges);
 
             if (strcmp(ges_str, "none") != 0)
-            {
                 ESP_LOGI(TAG, "Gesture detected: %s", ges_str);
-            }
-        }
 
-        vTaskDelay(GESTURE_DURATION / portTICK_PERIOD_MS);
-     }
+            vTaskDelay(GESTURE_DURATION / portTICK_PERIOD_MS);
+        }
+        else if (devPaj7620->mode == 1)
+        {
+            ret = i2c_register_read(dev_handle, PAJ7620_ADDR_PS_APPROACH_STATE, &state, 1);
+            if (ret == ESP_OK)
+            {
+                ESP_LOGI(TAG, "proximity state: %#02x", state & 0x01);
+            }
+            vTaskDelay(30 / portTICK_PERIOD_MS);
+
+            ret = i2c_register_read(dev_handle, PAJ7620_ADDR_S_AVE_Y_BRIGHTNESS, &level, 1);
+            if (ret == ESP_OK)
+                ESP_LOGI(TAG, "proximity level: %#02x", level);
+            vTaskDelay(200 / portTICK_PERIOD_MS);
+        }
+    }
 }

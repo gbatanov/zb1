@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v6.0.6
+// 2024 GSB zb1 v6.0.7
 //
 
 #include "settings.h"
@@ -25,9 +25,7 @@
 
 SemaphoreHandle_t i2c_semaphore = NULL;
 i2c_master_bus_handle_t bus_handle;
-
-// extern Dev_PAJ7620 devPaj7620;
-extern SemaphoreHandle_t print_mux;
+Dev_PAJ7620 devPaj7620;
 
 // #include "gsbtimer.h"
 
@@ -77,7 +75,6 @@ static esp_err_t main_i2c_init()
 void app_main(void)
 {
 
-    Dev_PAJ7620 devPaj7620;
 
     main_i2c_init();
 
@@ -104,7 +101,6 @@ void app_main(void)
     xTaskCreate(temp_chip_task, "temp_chip_task", 4096, NULL, 3, NULL);
 #endif
 
-    //   print_mux = xSemaphoreCreateMutex();
     light_driver_init(LIGHT_ON);
 
     uint8_t mode = 1;  // 0-gesture, 1-proximity
@@ -113,7 +109,7 @@ void app_main(void)
     esp_err_t ret = paj7620_init(&devPaj7620, mode, speed);
     if (ret == ESP_OK)
     {
-        xTaskCreate(gesture_task, "gesture_task", 2048, &devPaj7620, 6, NULL);
+        xTaskCreate(gesture_task, "gesture_task", 4096, &devPaj7620, 6, NULL);
 
         light_driver_set_green(45);
         light_driver_set_red(0);
