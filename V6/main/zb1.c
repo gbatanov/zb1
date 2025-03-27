@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v6.0.1
+// 2024 GSB zb1 v6.0.2
 //
 
 #include "settings.h"
@@ -110,7 +110,7 @@ void app_main(void)
 
 
     print_mux = xSemaphoreCreateMutex();
-    xTaskCreate(i2c_test_task, "i2c_test_task", 1024 * 2, (void *)1, 10, NULL);
+    xTaskCreate(gesture_task, "gesture_task", 2048, NULL, 6, NULL);
 
 
     light_driver_init(LIGHT_ON);

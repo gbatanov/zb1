@@ -62,6 +62,6 @@ extern const char *TAG;
 
 #define GESTURE_DURATION CONFIG_GESTURE_DURATION
 
-void i2c_test_task(void *arg);
+void gesture_task(void *arg);
 
 #endif

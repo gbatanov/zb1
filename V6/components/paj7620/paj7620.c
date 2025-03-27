@@ -11,7 +11,6 @@
 #include "driver/i2c_master.h"
 #include "paj7620.h"
 
-
 // Register values for sensor initialization.
 int init_register_array[][2] = {
     {0xEF, 0x00},
@@ -140,9 +139,6 @@ int init_ps_array[][2] = {
     {0x74, 0x05},
 };
 
-
-//SemaphoreHandle_t i2c_semaphore = NULL;
-
 SemaphoreHandle_t print_mux = NULL;
 
 extern i2c_master_bus_handle_t bus_handle;
@@ -253,7 +249,7 @@ const char *gesture_str(uint16_t ges)
     }
 }
 
-static esp_err_t i2c_master_sensor_test( uint8_t *data_h, uint8_t *data_l)
+static esp_err_t i2c_master_sensor_test()
 {
     esp_err_t ret;
 
@@ -350,33 +346,7 @@ static esp_err_t i2c_master_sensor_test( uint8_t *data_h, uint8_t *data_l)
 
     return ret;
 }
-/*
-// Инициализация шины. Должна быть одна для всех подключенных устройств.
-static esp_err_t i2c_master_init()
-{
-    // Don't initialize twice
-    if (i2c_semaphore != NULL)
-        return ESP_FAIL;
 
-    i2c_semaphore = xSemaphoreCreateMutex();
-    if (i2c_semaphore == NULL)
-        return ESP_FAIL;
-
-    ESP_LOGI(TAG, "New i2c driver is used");
-
-    i2c_master_bus_config_t i2c_mst_config = {
-        .clk_source = I2C_CLK_SRC_DEFAULT,
-        .glitch_ignore_cnt = 7,
-        .i2c_port = I2C_NUM,
-        .scl_io_num = CONFIG_SCL_GPIO,
-        .sda_io_num = CONFIG_SDA_GPIO,
-        .flags.enable_internal_pullup = true,
-    };
-
-    ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_mst_config, &bus_handle));
-    return ESP_OK;
-}
-*/
 // Добавление устройства на шину
 void i2c_bus_add_gesture()
 {
@@ -388,17 +358,15 @@ void i2c_bus_add_gesture()
     ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_cfg, &dev_handle));
 }
 
-void i2c_test_task(void *arg)
+void gesture_task(void *arg)
 {
     int ret;
-    uint32_t task_idx = (uint32_t)arg;
-    uint8_t sensor_data_h, sensor_data_l;
-    //   int cnt = 0;
+//    uint8_t sensor_data_h, sensor_data_l;
+
     i2c_bus_add_gesture();
     while (1)
     {
-        //       ESP_LOGI(TAG, "TASK[%d] test cnt: %d", task_idx, cnt++);
-        ret = i2c_master_sensor_test( &sensor_data_h, &sensor_data_l);
+        ret = i2c_master_sensor_test();
         xSemaphoreTake(print_mux, portMAX_DELAY);
         if (ret == ESP_ERR_TIMEOUT)
         {
@@ -411,7 +379,7 @@ void i2c_test_task(void *arg)
             {
                 uint8_t *ges = (uint8_t *)malloc(sizeof(uint8_t) * 2);
 
-                 ret = gesture_register_read(dev_handle, PAJ_INT_FLAG1, ges, sizeof(uint8_t) * 2);
+                ret = gesture_register_read(dev_handle, PAJ_INT_FLAG1, ges, sizeof(uint8_t) * 2);
 
                 if (ret != ESP_OK)
                 {
@@ -420,7 +388,7 @@ void i2c_test_task(void *arg)
                         free((void *)ges);
                     }
 
-                    vTaskDelay((DELAY_TIME_BETWEEN_ITEMS_MS * (task_idx + 1)) / portTICK_PERIOD_MS);
+                    vTaskDelay((DELAY_TIME_BETWEEN_ITEMS_MS * 2) / portTICK_PERIOD_MS);
                     continue;
                 }
 
@@ -444,23 +412,6 @@ void i2c_test_task(void *arg)
             ESP_LOGW(TAG, "%s: No ack, sensor not connected...skip...", esp_err_to_name(ret));
         }
         xSemaphoreGive(print_mux);
-        vTaskDelay((DELAY_TIME_BETWEEN_ITEMS_MS * (task_idx + 1)) / portTICK_PERIOD_MS);
+        vTaskDelay((DELAY_TIME_BETWEEN_ITEMS_MS * 2) / portTICK_PERIOD_MS);
     }
-    //    vSemaphoreDelete(print_mux);
-    //   vTaskDelete(NULL);
 }
-/*
-void app_main()
-{
-    print_mux = xSemaphoreCreateMutex();
-    ESP_ERROR_CHECK(i2c_master_init());
-
-    light_driver_init(LIGHT_DEFAULT_ON);
-    light_driver_set_green(45);
-    light_driver_set_red(10);
-    light_driver_set_blue(20);
-    light_driver_set_power(true);
-
-    xTaskCreate(i2c_test_task, "i2c_test_task_1", 1024 * 2, (void *)1, 10, NULL);
-}
-*/
