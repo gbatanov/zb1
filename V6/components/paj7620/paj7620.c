@@ -173,9 +173,9 @@ esp_err_t gesture_register_write(i2c_master_dev_handle_t dev_handle, uint8_t reg
 }
 
 // Returns a string describing the gesture, given the numerical reading value as input.
-const char *gesture_str(uint16_t ges)
+const char *gesture_str(uint8_t *ges)
 {
-    switch (ges)
+    switch (*ges)
     {
     case PAJ_UP:
         light_driver_set_green(90);
@@ -244,32 +244,25 @@ const char *gesture_str(uint16_t ges)
         break;
 
     default:
-        ESP_LOGI(TAG, "no gesture: %#02x", ges);
+        ESP_LOGI(TAG, "no gesture: 0x%#02x", *ges);
         return "none";
     }
 }
 
-static esp_err_t i2c_master_sensor_test()
+static esp_err_t gesture_sensor_init()
 {
-    esp_err_t ret;
+    esp_err_t ret = ESP_OK;
 
     // Check if sensor is ready.
     uint8_t *ready = (uint8_t *)malloc(sizeof(uint8_t));
-    while (ready == NULL || *ready != 0x20)
+    while (*ready != 0x20)
     {
         // Wait for sensor to stabilize.
         vTaskDelay(500 / portTICK_PERIOD_MS);
 
         ESP_LOGI(TAG, "Checking if sensor is ready...");
-
+        //  пробуем прочитать из банка 0 ChipId младший байт (default 0x20)
         ret = gesture_register_read(dev_handle, 0x00, ready, 1);
-
-        if (ready == NULL)
-        {
-            ESP_LOGE(TAG, "Failed checking if sensor is ready (ready = NULL, ret = %s). Checking again...", esp_err_to_name(ret));
-            continue;
-        }
-
         if (ret != ESP_OK || *ready != 0x20)
             ESP_LOGW(TAG, "Sensor isn't ready yet (ready = %#02x, ret = %s). Checking again...", *ready, esp_err_to_name(ret));
     }
@@ -297,50 +290,80 @@ static esp_err_t i2c_master_sensor_test()
 
     vTaskDelay(30 / portTICK_PERIOD_MS);
 
-    // Initialize gesture mode (as opposed to proximity mode).
-
-    // Get length of array.
-    size_t gest_arr_len = sizeof init_gesture_array / sizeof *init_gesture_array;
-
-    for (int i = 0; i < gest_arr_len; i++)
+    if (true)
     {
-        ESP_LOGI(TAG, "Initializing gesture mode: {%#02x, %#02x}", init_gesture_array[i][0], init_gesture_array[i][1]);
+        // Initialize gesture mode (as opposed to proximity mode).
 
-        ret = gesture_register_write_byte(dev_handle, init_gesture_array[i][0], init_gesture_array[i][1]);
-        if (ret != ESP_OK)
+        // Get length of array.
+        size_t gest_arr_len = sizeof init_gesture_array / sizeof *init_gesture_array;
+
+        for (int i = 0; i < gest_arr_len; i++)
         {
-            return ret;
+            ESP_LOGI(TAG, "Initializing gesture mode: {%#02x, %#02x}", init_gesture_array[i][0], init_gesture_array[i][1]);
+
+            ret = gesture_register_write_byte(dev_handle, init_gesture_array[i][0], init_gesture_array[i][1]);
+            if (ret != ESP_OK)
+                return ret;
         }
+
+        ESP_LOGI(TAG, "Gesture mode is initialized.");
+
+        vTaskDelay(30 / portTICK_PERIOD_MS);
+
+        // Enable Normal Mode.
+        ESP_LOGI(TAG, "Enabling normal mode...");
+
+        // Enable Gaming Mode.
+        //  ESP_LOGI(TAG, "Enabling gaming mode...");
+
+        // Set i2c write mode.
+        uint8_t bank = BANK1;
+        ret = gesture_register_write_byte(dev_handle, CHANGE_BANK_ADDR, bank);
+        if (ret != ESP_OK)
+            return ret;
+
+        uint8_t mode = NORMAL_MODE; // GAMING_MODE;
+        ret = gesture_register_write_byte(dev_handle, MODE_ADDR, mode);
+        if (ret != ESP_OK)
+            return ret;
+
+        bank = BANK0;
+        ret = gesture_register_write_byte(dev_handle, CHANGE_BANK_ADDR, bank);
+        if (ret != ESP_OK)
+            return ret;
+
+        ESP_LOGI(TAG, "Normal mode is enabled.");
+        //    ESP_LOGI(TAG, "Gaming mode is enabled.");
     }
+    else
+    {
+        // Initialize proximity mode - пока запустить не удалось ((
+        // Proximity Registers - Bank 0
+        //  Documentation best in v0.8 datasheet
+        //  Only available in Proximity Detection (PS) mode
+        // #define PAJ7620_ADDR_BASE                 0x00
+        // #define PAJ7620_REGISTER_BANK_SEL         (PAJ7620_ADDR_BASE + 0xEF)  - CHANGE_BANK_ADDR
+        // note Readonly - Single bit[0] - Approach == 1, Not approach == 0
+        // #define PAJ7620_ADDR_PS_APPROACH_STATE    (PAJ7620_ADDR_BASE + 0x6B)
+        // Readonly - PS 8 bit data - 255 is "near", lower is "further"
+        // #define PAJ7620_ADDR_S_AVE_Y_BRIGHTNESS   (PAJ7620_ADDR_BASE + 0x6C)
 
-    ESP_LOGI(TAG, "Gesture mode is initialized.");
+        // Get length of array.
+        size_t ps_arr_len = sizeof init_ps_array / sizeof *init_ps_array;
 
-    vTaskDelay(30 / portTICK_PERIOD_MS);
+        for (int i = 0; i < ps_arr_len; i++)
+        {
+            ESP_LOGI(TAG, "Initializing proximity mode: {%#02x, %#02x}", init_ps_array[i][0], init_ps_array[i][1]);
 
-    // Enable Normal Mode.
-    ESP_LOGI(TAG, "Enabling normal mode...");
+            ret = gesture_register_write_byte(dev_handle, init_ps_array[i][0], init_ps_array[i][1]);
+            if (ret != ESP_OK)
+                return ret;
+        }
 
-    // Enable Gaming Mode.
-    //  ESP_LOGI(TAG, "Enabling gaming mode...");
+        ESP_LOGI(TAG, "Proximiy mode is initialized.");
 
-    // Set i2c write mode.
-    uint8_t bank = BANK1;
-    ret = gesture_register_write_byte(dev_handle, CHANGE_BANK_ADDR, bank);
-    if (ret != ESP_OK)
-        return ret;
-
-    uint8_t mode = NORMAL_MODE; // GAMING_MODE;
-    ret = gesture_register_write_byte(dev_handle, MODE_ADDR, mode);
-    if (ret != ESP_OK)
-        return ret;
-
-    bank = BANK0;
-    ret = gesture_register_write_byte(dev_handle, CHANGE_BANK_ADDR, bank);
-    if (ret != ESP_OK)
-        return ret;
-
-    ESP_LOGI(TAG, "Normal mode is enabled.");
-    //    ESP_LOGI(TAG, "Gaming mode is enabled.");
+        vTaskDelay(30 / portTICK_PERIOD_MS);
+    }
 
     vTaskDelay(30 / portTICK_PERIOD_MS);
 
@@ -361,12 +384,11 @@ void i2c_bus_add_gesture()
 void gesture_task(void *arg)
 {
     int ret;
-//    uint8_t sensor_data_h, sensor_data_l;
 
     i2c_bus_add_gesture();
     while (1)
     {
-        ret = i2c_master_sensor_test();
+        ret = gesture_sensor_init();
         xSemaphoreTake(print_mux, portMAX_DELAY);
         if (ret == ESP_ERR_TIMEOUT)
         {
@@ -375,31 +397,29 @@ void gesture_task(void *arg)
         else if (ret == ESP_OK)
         {
             // Initialization succeeded.
+            uint8_t *ges = (uint8_t *)malloc(sizeof(uint8_t) * 2);
+
             for (;;)
             {
-                uint8_t *ges = (uint8_t *)malloc(sizeof(uint8_t) * 2);
-
+                *ges = 0;
+                ges++;
+                *ges = 0;
+                ges--;
                 ret = gesture_register_read(dev_handle, PAJ_INT_FLAG1, ges, sizeof(uint8_t) * 2);
-
                 if (ret != ESP_OK)
                 {
-                    if (ges != NULL)
-                        free((void *)ges);
-
-                    vTaskDelay(DELAY_TIME_BETWEEN_ITEMS_MS  / portTICK_PERIOD_MS);
+                    vTaskDelay(DELAY_TIME_BETWEEN_ITEMS_MS / portTICK_PERIOD_MS);
                     continue;
                 }
 
                 if (ges != NULL)
                 {
-                    const char *ges_str = gesture_str(*ges);
+                    const char *ges_str = gesture_str(ges);
 
                     if (strcmp(ges_str, "none") != 0)
                     {
                         ESP_LOGI(TAG, "Gesture detected: %s", ges_str);
                     }
-
-                    free((void *)ges);
                 }
 
                 vTaskDelay(GESTURE_DURATION / portTICK_PERIOD_MS);
@@ -410,6 +430,6 @@ void gesture_task(void *arg)
             ESP_LOGW(TAG, "%s: No ack, sensor not connected...skip...", esp_err_to_name(ret));
         }
         xSemaphoreGive(print_mux);
-        vTaskDelay(DELAY_TIME_BETWEEN_ITEMS_MS  / portTICK_PERIOD_MS);
+        vTaskDelay(DELAY_TIME_BETWEEN_ITEMS_MS / portTICK_PERIOD_MS);
     }
 }

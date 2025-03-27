@@ -37,7 +37,7 @@ extern const char *TAG;
 #define BANK1 0x01
 
 // Set the mode at Bank 1
-#define MODE_ADDR 0x65
+#define MODE_ADDR 0x65    //в доке это  R_IDLE_TIME[7:0] default 0xB4
 #define NORMAL_MODE 0xB7 // normal (far) mode 120 fps
 #define GAMING_MODE 0x12 // gaming (near) mode 240 fps
 
