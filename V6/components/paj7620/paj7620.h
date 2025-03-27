@@ -1,6 +1,7 @@
 #ifndef PAJ7620_H
 #define PAJ7620_H
 
+#include "driver/i2c_master.h"
 #include "light_driver.h"
 #include "sdkconfig.h"
 
@@ -13,9 +14,9 @@ extern const char *TAG;
 #define I2C_MASTER_TIMEOUT_MS 1000
 #define I2C_TICKS_TO_WAIT 100
 
-#define DATA_LENGTH 512                  // Data buffer length of test buffer 
-#define RW_TEST_LENGTH 128               // Data length for r/w test, [0,DATA_LENGTH] 
-#define DELAY_TIME_BETWEEN_ITEMS_MS 2000 // delay time between different test items 
+#define DATA_LENGTH 512                  // Data buffer length of test buffer
+#define RW_TEST_LENGTH 128               // Data length for r/w test, [0,DATA_LENGTH]
+#define DELAY_TIME_BETWEEN_ITEMS_MS 2000 // delay time between different test items
 
 #define I2C_MASTER_FREQ_HZ CONFIG_I2C_MASTER_FREQ_HZ // I2C clock of PAJ7620 can run at 400 kHz max
 #define GESTURE_SENSOR_ADDR CONFIG_GESTURE_SENSOR_ADDR
@@ -32,17 +33,31 @@ extern const char *TAG;
 #define PAJ_COUNT_CLOCKWISE 0x80
 #define PAJ_WAVE 0x3
 
+#define PAJ7620_ADDR_BASE 0x00
+#define PAJ7620_ADDR_PS_APPROACH_STATE (PAJ7620_ADDR_BASE + 0x6B)
+#define PAJ7620_ADDR_S_AVE_Y_BRIGHTNESS (PAJ7620_ADDR_BASE + 0x6C)
+
 #define CHANGE_BANK_ADDR 0xEF
 #define BANK0 0x00
 #define BANK1 0x01
 
-// Set the mode at Bank 1
-#define MODE_ADDR 0x65    //в доке это  R_IDLE_TIME[7:0] default 0xB4
-#define NORMAL_MODE 0xB7 // normal (far) mode 120 fps
-#define GAMING_MODE 0x12 // gaming (near) mode 240 fps
+// Set the R_IDLE_TIME at Bank 1
+#define R_IDLE_TIME 0x65  // в доке это  R_IDLE_TIME[7:0] default 0xB4
+#define NORMAL_SPEED 0xB7 // normal (far) mode 120 fps
+#define GAMING_SPEED 0x12 // gaming (near) mode 240 fps
 
 #define GESTURE_DURATION CONFIG_GESTURE_DURATION
 
+typedef struct
+{
+    i2c_master_dev_handle_t dev_handle;
+    uint8_t mode;
+    uint8_t speed;
+    bool available;
+} Dev_PAJ7620;
+
 void gesture_task(void *arg);
+esp_err_t paj7620_init(Dev_PAJ7620 *dev, uint8_t mode, uint8_t speed);
+void i2c_bus_add_paj7620(Dev_PAJ7620 *devPaj7620);
 
 #endif

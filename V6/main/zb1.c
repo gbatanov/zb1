@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v6.0.5
+// 2024 GSB zb1 v6.0.6
 //
 
 #include "settings.h"
@@ -21,16 +21,15 @@
 #include "driver/i2c_master.h"
 #include "paj7620.h"
 
-
 #define I2C_NUM I2C_NUM_0
 
 SemaphoreHandle_t i2c_semaphore = NULL;
 i2c_master_bus_handle_t bus_handle;
 
-extern i2c_master_dev_handle_t dev_handle;
+// extern Dev_PAJ7620 devPaj7620;
 extern SemaphoreHandle_t print_mux;
 
-//#include "gsbtimer.h"
+// #include "gsbtimer.h"
 
 #include "zb1.h"
 
@@ -51,7 +50,6 @@ float temp = 0;
 bool temp_change = false;
 #endif
 
-
 // Инициализация шины. Должна быть одна для всех подключенных устройств.
 static esp_err_t main_i2c_init()
 {
@@ -64,7 +62,7 @@ static esp_err_t main_i2c_init()
         return ESP_FAIL;
 
     i2c_master_bus_config_t i2c_master_config = {
-        .clk_source = I2C_CLK_SRC_DEFAULT,// это не CONFIG_I2C_MASTER_FREQ_HZ !
+        .clk_source = I2C_CLK_SRC_DEFAULT, // это не CONFIG_I2C_MASTER_FREQ_HZ !
         .glitch_ignore_cnt = 7,
         .i2c_port = I2C_NUM,
         .scl_io_num = CONFIG_SCL_GPIO,
@@ -76,10 +74,10 @@ static esp_err_t main_i2c_init()
     return ESP_OK;
 }
 
-
 void app_main(void)
 {
 
+    Dev_PAJ7620 devPaj7620;
 
     main_i2c_init();
 
@@ -99,24 +97,35 @@ void app_main(void)
     xTaskCreate(update_attribute, "Update_attribute_value", 4096, NULL, 5, NULL);
 
 #endif
- 
-// xTaskCreate(TaskFunction, NameFunction, StackDepth, void* Parameters, Priority, TaskHandle)
+
+    // xTaskCreate(TaskFunction, NameFunction, StackDepth, void* Parameters, Priority, TaskHandle)
 
 #ifdef USE_TEMP_CHIP
     xTaskCreate(temp_chip_task, "temp_chip_task", 4096, NULL, 3, NULL);
 #endif
 
-
-    print_mux = xSemaphoreCreateMutex();
-    xTaskCreate(gesture_task, "gesture_task", 2048, NULL, 6, NULL);
-
-
+    //   print_mux = xSemaphoreCreateMutex();
     light_driver_init(LIGHT_ON);
-    light_driver_set_green(45);
-    light_driver_set_red(10);
-    light_driver_set_blue(20);
-    light_driver_set_power(true);
 
+    uint8_t mode = 1;  // 0-gesture, 1-proximity
+    uint8_t speed = 0; // 0-normal, 1-gamiing
+    i2c_bus_add_paj7620(&devPaj7620);
+    esp_err_t ret = paj7620_init(&devPaj7620, mode, speed);
+    if (ret == ESP_OK)
+    {
+        xTaskCreate(gesture_task, "gesture_task", 2048, &devPaj7620, 6, NULL);
+
+        light_driver_set_green(45);
+        light_driver_set_red(0);
+        light_driver_set_blue(10);
+    }
+    else
+    {
+        light_driver_set_green(0);
+        light_driver_set_red(45);
+        light_driver_set_blue(10);
+    }
+    light_driver_set_power(true);
 }
 /*
 // Обработчик кнопки BOOT (одиночный клик)
