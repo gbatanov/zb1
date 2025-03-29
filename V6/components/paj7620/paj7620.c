@@ -136,7 +136,9 @@ int init_ps_array[][2] = {
 
 };
 
-// Dev_PAJ7620 devPaj7620;
+static QueueHandle_t gpio_evt_queue = NULL;
+// коллбэк-функция обработки прерываний с сенсора
+// static sonar_callback_t func_ptr;
 
 SemaphoreHandle_t print_mux = NULL;
 
@@ -153,6 +155,28 @@ static esp_err_t i2c_register_write_byte(i2c_master_dev_handle_t dev_handle, uin
 {
     uint8_t write_buf[2] = {reg_addr, data};
     return i2c_master_transmit(dev_handle, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+}
+
+// обработчик прерываний
+// Обработчик прерывания должен постоянно находится в оперативной памяти (IRAM),
+// поэтому его следует пометить соответствующим атрибутом IRAM_ATTR.
+static void IRAM_ATTR gpio_isr_handler(void *arg)
+{
+    Dev_PAJ7620 *dev = (Dev_PAJ7620 *)arg;
+    //  запрещаем прерывания
+    gpio_intr_disable(dev->intPin);
+    // Переменные для переключения контекста
+    BaseType_t xHigherPriorityTaskWoken, xResult;
+    xHigherPriorityTaskWoken = pdFALSE;
+
+    // посылаем в очередь сообщений пин (туда надо тупо что-то послать,
+    // хотя у нас заранее известно на каком пине возникло прерывание)
+    xResult = xQueueSendFromISR(gpio_evt_queue, dev, &xHigherPriorityTaskWoken);
+
+    if (xResult == pdPASS)
+    {
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    };
 }
 
 esp_err_t i2c_register_write(i2c_master_dev_handle_t dev_handle, uint8_t reg_addr, const uint8_t *data, size_t size)
@@ -248,14 +272,15 @@ const char *gesture_str(uint16_t *ges)
 }
 // 0 - NORMAL_SPEED
 // 1 - GAMING_SPEED
-static esp_err_t gesture_set_speed(Dev_PAJ7620 *devPaj7620, uint8_t speed)
+static esp_err_t gesture_set_speed(Dev_PAJ7620 *devPaj7620)
 {
     i2c_master_dev_handle_t dev_handle = devPaj7620->dev_handle;
+    uint8_t speed = devPaj7620->speed;
     if (speed > 1)
-        return ESP_FAIL;
-
-    if (devPaj7620->speed == speed)
-        return ESP_OK;
+    {
+        speed = 0;
+        devPaj7620->speed = speed;
+    }
 
     // select bank
     esp_err_t ret = i2c_register_write_byte(dev_handle, CHANGE_BANK_ADDR, BANK1);
@@ -274,15 +299,15 @@ static esp_err_t gesture_set_speed(Dev_PAJ7620 *devPaj7620, uint8_t speed)
     if (ret != ESP_OK)
         return ret;
 
-    devPaj7620->speed = speed;
     return ESP_OK;
 }
 
 // 0 - gesture
 // 1 - proximity
-static esp_err_t paj7620_set_mode(Dev_PAJ7620 *dev, uint8_t mode)
+static esp_err_t paj7620_set_mode(Dev_PAJ7620 *dev)
 {
     i2c_master_dev_handle_t dev_handle = dev->dev_handle;
+    uint8_t mode = dev->mode;
     esp_err_t ret = ESP_OK;
     if (mode == 0)
     {
@@ -320,20 +345,56 @@ static esp_err_t paj7620_set_mode(Dev_PAJ7620 *dev, uint8_t mode)
 
         // ESP_LOGI(TAG, "Proximiy mode is initialized.");
     }
-    dev->mode = mode;
+
     vTaskDelay(30 / portTICK_PERIOD_MS);
 
     return ESP_OK;
 }
 
+// Настраиваем прерывание на пине
+static bool paj762r_gpio_init(Dev_PAJ7620 *dev)
+{
+    gpio_config_t io_conf = {};
+    uint64_t pin_bit_mask = 0;
+
+    pin_bit_mask = (1ULL << dev->intPin);
+
+    io_conf.intr_type = GPIO_INTR_NEGEDGE; // прерывание по спаду
+    io_conf.pin_bit_mask = pin_bit_mask;
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pull_down_en = 0;
+    io_conf.pull_up_en = 0;
+    // конфигурируем GPIO с заданными установками
+    gpio_config(&io_conf);
+
+    // создаем очередь для обработки GPIO событий от ISR
+    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    if (gpio_evt_queue == 0)
+    {
+        ESP_LOGE(TAG, "Queue was not created and must not be used");
+        return false;
+    }
+    // стартуем задачу
+    //   xTaskCreate(interrupt_detect_task, "interrupt_detect_task", 4096, NULL, 10, NULL);
+    xTaskCreate(gesture_task, "gesture_task", 4096, dev, 6, NULL);
+    // устанавливаем службу прерываний
+    gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+    // добавляем обработчик прервания  gpio_isr_handler на пине pin
+    gpio_isr_handler_add(dev->intPin, gpio_isr_handler, dev);
+    //   funcfunc_ptr = cb;
+    return true;
+}
+
 //
-esp_err_t paj7620_init(Dev_PAJ7620 *dev, uint8_t mode, uint8_t speed)
+esp_err_t paj7620_init(Dev_PAJ7620 *dev)
 {
     esp_err_t ret = ESP_OK;
 
     // Check if sensor is ready.
     uint8_t ready = 0;
     i2c_master_dev_handle_t dev_handle = dev->dev_handle;
+    if (!paj762r_gpio_init(dev))
+        return ESP_FAIL;
 
     while (ready != 0x20)
     {
@@ -367,10 +428,10 @@ esp_err_t paj7620_init(Dev_PAJ7620 *dev, uint8_t mode, uint8_t speed)
     ESP_LOGI(TAG, "Sensor is initialized.");
 
     vTaskDelay(30 / portTICK_PERIOD_MS);
-    ret = paj7620_set_mode(dev, mode);
+    ret = paj7620_set_mode(dev);
 
-    if (mode == 0)
-        ret = gesture_set_speed(dev, speed); // 0 - normal, 1 - gaming
+    if (dev->mode == 0)
+        ret = gesture_set_speed(dev);
 
     vTaskDelay(30 / portTICK_PERIOD_MS);
 
@@ -406,35 +467,38 @@ void gesture_task(void *arg)
         ges++;
         *ges = 0;
         ges--;
-
-        if (devPaj7620->mode == 0)
+        // Ждем появления сообщения в очереди и читаем при появлении
+        if (xQueueReceive(gpio_evt_queue, (void *)devPaj7620, portMAX_DELAY))
         {
-            ret = i2c_register_read(dev_handle, PAJ_INT_FLAG1, ges, sizeof(uint8_t) * 2);
-            if (ret != ESP_OK)
+            gpio_intr_disable(devPaj7620->intPin); // запрещаем прерывание на пине
+            ESP_LOGI(TAG, "Interrupt detected");
+            // res = (*func_ptr)();            // выполняем функцию
+            // gpio_intr_enable(devPaj7620->intPin);  // разрешаем прерывание на пине
+
+            if (devPaj7620->mode == 0)
             {
-                vTaskDelay(DELAY_TIME_BETWEEN_ITEMS_MS / portTICK_PERIOD_MS);
-                continue;
+                ret = i2c_register_read(dev_handle, PAJ_INT_FLAG1, ges, sizeof(uint8_t) * 2);
+                if (ret == ESP_OK)
+                {
+                    const char *ges_str = gesture_str((uint16_t *)ges);
+                    if (strcmp(ges_str, "none") != 0)
+                        ESP_LOGI(TAG, "Gesture detected: %s", ges_str);
+                }
+                //            vTaskDelay(GESTURE_DURATION / portTICK_PERIOD_MS);
             }
-            const char *ges_str = gesture_str((uint16_t *)ges);
-
-            if (strcmp(ges_str, "none") != 0)
-                ESP_LOGI(TAG, "Gesture detected: %s", ges_str);
-
-            vTaskDelay(GESTURE_DURATION / portTICK_PERIOD_MS);
-        }
-        else if (devPaj7620->mode == 1)
-        {
-            ret = i2c_register_read(dev_handle, PAJ7620_ADDR_PS_APPROACH_STATE, &state, 1);
-            if (ret == ESP_OK)
+            else if (devPaj7620->mode == 1)
             {
-                ESP_LOGI(TAG, "proximity state: %#02x", state & 0x01);
-            }
-            vTaskDelay(30 / portTICK_PERIOD_MS);
+                ret = i2c_register_read(dev_handle, PAJ7620_ADDR_PS_APPROACH_STATE, &state, 1);
+                if (ret == ESP_OK)
+                    ESP_LOGI(TAG, "proximity state: %#02x", state & 0x01);
+                vTaskDelay(30 / portTICK_PERIOD_MS);
 
-            ret = i2c_register_read(dev_handle, PAJ7620_ADDR_S_AVE_Y_BRIGHTNESS, &level, 1);
-            if (ret == ESP_OK)
-                ESP_LOGI(TAG, "proximity level: %#02x", level);
-            vTaskDelay(200 / portTICK_PERIOD_MS);
+                ret = i2c_register_read(dev_handle, PAJ7620_ADDR_S_AVE_Y_BRIGHTNESS, &level, 1);
+                if (ret == ESP_OK)
+                    ESP_LOGI(TAG, "proximity level: %#02x", level);
+                //           vTaskDelay(200 / portTICK_PERIOD_MS);
+            }
+            gpio_intr_enable(devPaj7620->intPin); // разрешаем прерывание на пине
         }
     }
 }

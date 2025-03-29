@@ -2,10 +2,14 @@
 #define PAJ7620_H
 
 #include "driver/i2c_master.h"
+#include "driver/gpio.h"
 #include "light_driver.h"
 #include "sdkconfig.h"
 
 extern const char *TAG;
+
+#define ESP_INTR_FLAG_DEFAULT 0
+
 #ifndef I2C_NUM
 #define I2C_NUM I2C_NUM_0
 #endif
@@ -51,13 +55,14 @@ extern const char *TAG;
 typedef struct
 {
     i2c_master_dev_handle_t dev_handle;
+    uint32_t intPin; // пин, на который повешено прерывание
     uint8_t mode;
     uint8_t speed;
     bool available;
 } Dev_PAJ7620;
 
 void gesture_task(void *arg);
-esp_err_t paj7620_init(Dev_PAJ7620 *dev, uint8_t mode, uint8_t speed);
+esp_err_t paj7620_init(Dev_PAJ7620 *dev);
 void i2c_bus_add_paj7620(Dev_PAJ7620 *devPaj7620);
 
 #endif

@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v6.0.7
+// 2024 GSB zb1 v6.1.1
 //
 
 #include "settings.h"
@@ -26,6 +26,7 @@
 SemaphoreHandle_t i2c_semaphore = NULL;
 i2c_master_bus_handle_t bus_handle;
 Dev_PAJ7620 devPaj7620;
+#define INT_PIN_NUM GPIO_NUM_1
 
 // #include "gsbtimer.h"
 
@@ -75,7 +76,6 @@ static esp_err_t main_i2c_init()
 void app_main(void)
 {
 
-
     main_i2c_init();
 
 #ifdef USE_ZIGBEE
@@ -106,10 +106,13 @@ void app_main(void)
     uint8_t mode = 1;  // 0-gesture, 1-proximity
     uint8_t speed = 0; // 0-normal, 1-gamiing
     i2c_bus_add_paj7620(&devPaj7620);
-    esp_err_t ret = paj7620_init(&devPaj7620, mode, speed);
+    devPaj7620.mode = mode;
+    devPaj7620.speed = speed;
+    devPaj7620.intPin = INT_PIN_NUM;
+    esp_err_t ret = paj7620_init(&devPaj7620);
     if (ret == ESP_OK)
     {
-        xTaskCreate(gesture_task, "gesture_task", 4096, &devPaj7620, 6, NULL);
+    //    xTaskCreate(gesture_task, "gesture_task", 4096, &devPaj7620, 6, NULL);
 
         light_driver_set_green(45);
         light_driver_set_red(0);
