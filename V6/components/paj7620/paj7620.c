@@ -137,12 +137,9 @@ int init_ps_array[][2] = {
 };
 
 static QueueHandle_t gpio_evt_queue = NULL;
-// коллбэк-функция обработки прерываний с сенсора
-// static sonar_callback_t func_ptr;
-
-SemaphoreHandle_t print_mux = NULL;
 
 extern i2c_master_bus_handle_t bus_handle;
+extern QueueHandle_t blink_evt_queue;
 
 //   Read a sequence of bytes from a i2c device registers
 static esp_err_t i2c_register_read(i2c_master_dev_handle_t dev_handle, uint8_t reg_addr, uint8_t *data, size_t len)
@@ -197,74 +194,57 @@ esp_err_t i2c_register_write(i2c_master_dev_handle_t dev_handle, uint8_t reg_add
 // Returns a string describing the gesture, given the numerical reading value as input.
 const char *gesture_str(uint16_t *ges)
 {
+    uint32_t tColor = 0;
     switch (*ges)
     {
     case PAJ_UP:
- //       light_driver_set_green(90);
- //       light_driver_set_red(0);
- //       light_driver_set_blue(0);
- //       light_driver_set_power(true);
+        tColor = (1 << 24) + (255 << 8); // 1 green
+        xQueueSendToBack(blink_evt_queue, (void *)&tColor, (TickType_t)0);
 
         return "up";
         break;
 
     case PAJ_DOWN:
- //       light_driver_set_green(45);
- //       light_driver_set_red(0);
- //       light_driver_set_blue(0);
- //       light_driver_set_power(true);
+        tColor = (2 << 24) + (255 << 8); // 2 green
+        xQueueSendToBack(blink_evt_queue, (void *)&tColor, (TickType_t)0);
 
         return "down";
         break;
 
     case PAJ_LEFT:
-        //     light_driver_set_green(0);
-        //     light_driver_set_red(0);
-        //     light_driver_set_blue(45);
-        //     light_driver_set_power(true);
+        tColor = (1 << 24) + 255; // 1 blue
+        xQueueSendToBack(blink_evt_queue, (void *)&tColor, (TickType_t)10);
 
         return "left";
         break;
 
     case PAJ_RIGHT:
-        //    light_driver_set_green(0);
-        //     light_driver_set_red(0);
-        //     light_driver_set_blue(90);
-        //      light_driver_set_power(true);
+        tColor = (2 << 24) + 255; // 2 blue
+        xQueueSendToBack(blink_evt_queue, (void *)&tColor, (TickType_t)10);
 
         return "right";
         break;
+        /*
+            case PAJ_FORWARD:
+                return "forward";
+                break;
 
-    case PAJ_FORWARD:
-        //    light_driver_set_green(0);
-        //    light_driver_set_red(90);
-        //    light_driver_set_blue(0);
-        //    light_driver_set_power(true);
+            case PAJ_BACKWARD:
+                return "backward";
+                break;
 
-        return "forward";
-        break;
+            case PAJ_CLOCKWISE:
+                return "clockwise";
+                break;
 
-    case PAJ_BACKWARD:
-        //    light_driver_set_green(0);
-        //    light_driver_set_red(10);
-        //    light_driver_set_blue(0);
-        //     light_driver_set_power(true);
+            case PAJ_COUNT_CLOCKWISE:
+                return "counter-clockwise";
+                break;
 
-        return "backward";
-        break;
-
-    case PAJ_CLOCKWISE:
-        return "clockwise";
-        break;
-
-    case PAJ_COUNT_CLOCKWISE:
-        return "counter-clockwise";
-        break;
-
- //   case PAJ_WAVE:
- //       return "wave";
- //       break;
-
+            case PAJ_WAVE:
+                return "wave";
+                break;
+        */
     default:
         //        ESP_LOGI(TAG, "no gesture: %#04x", *ges);
         return "none";
@@ -419,7 +399,7 @@ esp_err_t paj7620_init(Dev_PAJ7620 *dev)
 
     for (int i = 0; i < reg_arr_len; i++)
     {
-//        ESP_LOGI(TAG, "Initializing sensor state: {addr: 0x%#02x, val: 0x%#02x}", init_register_array[i][0], init_register_array[i][1]);
+        //        ESP_LOGI(TAG, "Initializing sensor state: {addr: 0x%#02x, val: 0x%#02x}", init_register_array[i][0], init_register_array[i][1]);
         ret = i2c_register_write_byte(dev_handle, init_register_array[i][0], init_register_array[i][1]);
         if (ret != ESP_OK)
             return ret;
@@ -471,20 +451,16 @@ void gesture_task(void *arg)
         if (xQueueReceive(gpio_evt_queue, (void *)devPaj7620, portMAX_DELAY))
         {
             gpio_intr_disable(devPaj7620->intPin); // запрещаем прерывание на пине
-            ESP_LOGI(TAG, "Interrupt detected");
-            // res = (*func_ptr)();            // выполняем функцию
-            // gpio_intr_enable(devPaj7620->intPin);  // разрешаем прерывание на пине
-
             if (devPaj7620->mode == 0)
             {
                 ret = i2c_register_read(dev_handle, PAJ_INT_FLAG1, ges, sizeof(uint8_t) * 2);
                 if (ret == ESP_OK)
                 {
-                    const char *ges_str = gesture_str((uint16_t *)ges);
-                    if (strcmp(ges_str, "none") != 0)
-                        ESP_LOGI(TAG, "Gesture detected: %s", ges_str);
+                    gesture_str((uint16_t *)ges);
+                    // const char *ges_str = gesture_str((uint16_t *)ges);
+                    // if (strcmp(ges_str, "none") != 0)
+                    // ESP_LOGI(TAG, "Gesture detected: %s", ges_str);
                 }
-                //            vTaskDelay(GESTURE_DURATION / portTICK_PERIOD_MS);
             }
             else if (devPaj7620->mode == 1)
             {
@@ -496,7 +472,6 @@ void gesture_task(void *arg)
                 ret = i2c_register_read(dev_handle, PAJ7620_ADDR_S_AVE_Y_BRIGHTNESS, &level, 1);
                 if (ret == ESP_OK)
                     ESP_LOGI(TAG, "proximity level: %#02x", level);
-                //           vTaskDelay(200 / portTICK_PERIOD_MS);
             }
             gpio_intr_enable(devPaj7620->intPin); // разрешаем прерывание на пине
         }

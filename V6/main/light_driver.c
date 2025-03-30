@@ -3,7 +3,9 @@
 #include "led_strip.h"
 #include "light_driver.h"
 
-#define LED_STRIP_RMT_RES_HZ  (10 * 1000 * 1000)  // меньше 10 МГц вообще не работает!!!
+#define LED_STRIP_RMT_RES_HZ (10 * 1000 * 1000) // меньше 10 МГц вообще не работает!!!
+
+// SemaphoreHandle_t colorMutex = NULL;
 
 static led_strip_handle_t s_led_strip;
 static uint8_t s_red = 10, s_green = 10, s_blue = 10;
@@ -53,6 +55,10 @@ void light_driver_set_blue(uint8_t power)
 
 void light_driver_init(bool power)
 {
+    //   colorMutex = xSemaphoreCreateMutex();
+    //   if (colorMutex == NULL)
+    //      return;
+
     led_strip_config_t led_strip_conf = {
         .max_leds = CONFIG_EXAMPLE_STRIP_LED_NUMBER,
         .strip_gpio_num = CONFIG_EXAMPLE_STRIP_LED_GPIO,

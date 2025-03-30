@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v6.1.2
+// 2024 GSB zb1 v6.1.3
 //
 
 #include "settings.h"
@@ -21,8 +21,7 @@
 #include "driver/i2c_master.h"
 #include "paj7620.h"
 
-SemaphoreHandle_t blinkMutex = NULL;
-static QueueHandle_t blink_evt_queue = NULL;
+QueueHandle_t blink_evt_queue = NULL;
 
 #define I2C_NUM I2C_NUM_0
 
@@ -83,34 +82,20 @@ void blink_task(void *arg)
     {
         if (xQueueReceive(blink_evt_queue, (void *)&crgb, portMAX_DELAY))
         {
-            ESP_LOGI(TAG, "count %lu", crgb);
-            if (xSemaphoreTake(blinkMutex, portMAX_DELAY) == pdTRUE)
+            uint32_t oldColor = get_RGB();
+
+            uint8_t count = (uint8_t)(crgb >> 24);
+            if (count > 0)
             {
-                // Здесь происходит защищенный доступ к ресурсу.
-                uint32_t oldColor = get_RGB();
-
-                set_RGB(crgb);
-                uint8_t count = (uint8_t)(crgb >> 24);
-                ESP_LOGI(TAG, "count %d", count);
-                if (count > 0)
+                for (int i = 0; i < count; i++)
                 {
-                    light_driver_set_power(false);
+                    set_RGB(crgb);
+                    light_driver_set_power(true);
                     vTaskDelay(250 / portTICK_PERIOD_MS);
-
-                    for (int i = 0; i < count; i++)
-                    {
-
-                        light_driver_set_power(true);
-                        vTaskDelay(250 / portTICK_PERIOD_MS);
-                        light_driver_set_power(false);
-                        vTaskDelay(250 / portTICK_PERIOD_MS);
-                    }
-
                     set_RGB(oldColor);
                     light_driver_set_power(true);
+                    vTaskDelay(250 / portTICK_PERIOD_MS);
                 }
-                // Освобождаем мьютекс.
-                xSemaphoreGive(blinkMutex);
             }
         }
     }
@@ -120,10 +105,6 @@ void app_main(void)
 {
 
     main_i2c_init();
-
-    blinkMutex = xSemaphoreCreateMutex();
-    if (blinkMutex == NULL)
-        return;
 
     // создаем очередь для сообщений для мигания светодиодом
     blink_evt_queue = xQueueCreate(8, sizeof(uint32_t));
@@ -166,15 +147,19 @@ void app_main(void)
     devPaj7620.intPin = INT_PIN_NUM;
     esp_err_t ret = paj7620_init(&devPaj7620);
     if (ret != ESP_OK)
+    {
+        uint32_t tColor = (255 << 16); // 1 red
+        xQueueSendToBack(blink_evt_queue, (void *)&tColor, (TickType_t)0);
         return;
+    }
 
-    if (true)
+    if (false)
     {
 
         vTaskDelay(2000 / portTICK_PERIOD_MS);
         uint32_t tColor = (1 << 24) + (255 << 16); // 1 red
         xQueueSendToBack(blink_evt_queue, (void *)&tColor, (TickType_t)0);
-    
+
         vTaskDelay(2000 / portTICK_PERIOD_MS);
         tColor = (2 << 24) + (255 << 8); // 2 green
         xQueueSendToBack(blink_evt_queue, (void *)&tColor, (TickType_t)0);
