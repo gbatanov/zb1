@@ -17,6 +17,8 @@ extern "C" {
 #define CONFIG_EXAMPLE_STRIP_LED_NUMBER 1
 
 void light_driver_set_power(bool power);
+void set_RGB(uint32_t rgb);
+uint32_t get_RGB();
 void light_driver_set_green(uint8_t power);
 void light_driver_set_red(uint8_t power);
 void light_driver_set_blue(uint8_t power);

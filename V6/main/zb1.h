@@ -40,11 +40,7 @@ extern "C"
     esp_err_t zb_action_handler(esp_zb_core_action_callback_id_t callback_id, const void *message);
     void esp_zb_task(void *pvParameters);
     void update_attribute();
-#ifdef USE_ISR_BUTTON
-    esp_err_t deferred_driver_init(void);
-#else
-// void register_buttons();
-#endif
+
 #ifdef __cplusplus
 }
 #endif

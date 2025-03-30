@@ -1,4 +1,4 @@
-// 2024 GSB zb1 v6.1.1
+// 2024 GSB zb1 v6.1.2
 //
 
 #include "settings.h"
@@ -21,14 +21,15 @@
 #include "driver/i2c_master.h"
 #include "paj7620.h"
 
+SemaphoreHandle_t blinkMutex = NULL;
+static QueueHandle_t blink_evt_queue = NULL;
+
 #define I2C_NUM I2C_NUM_0
 
 SemaphoreHandle_t i2c_semaphore = NULL;
 i2c_master_bus_handle_t bus_handle;
 Dev_PAJ7620 devPaj7620;
 #define INT_PIN_NUM GPIO_NUM_1
-
-// #include "gsbtimer.h"
 
 #include "zb1.h"
 
@@ -73,11 +74,65 @@ static esp_err_t main_i2c_init()
     return ESP_OK;
 }
 
+// count, red, green, blue
+// count 0 - 3, 0 - просто включаем нужный цвет, защищенный аналог set_RGB()
+void blink_task(void *arg)
+{
+    uint32_t crgb = 0;
+    while (true)
+    {
+        if (xQueueReceive(blink_evt_queue, (void *)&crgb, portMAX_DELAY))
+        {
+            ESP_LOGI(TAG, "count %lu", crgb);
+            if (xSemaphoreTake(blinkMutex, portMAX_DELAY) == pdTRUE)
+            {
+                // Здесь происходит защищенный доступ к ресурсу.
+                uint32_t oldColor = get_RGB();
+
+                set_RGB(crgb);
+                uint8_t count = (uint8_t)(crgb >> 24);
+                ESP_LOGI(TAG, "count %d", count);
+                if (count > 0)
+                {
+                    light_driver_set_power(false);
+                    vTaskDelay(250 / portTICK_PERIOD_MS);
+
+                    for (int i = 0; i < count; i++)
+                    {
+
+                        light_driver_set_power(true);
+                        vTaskDelay(250 / portTICK_PERIOD_MS);
+                        light_driver_set_power(false);
+                        vTaskDelay(250 / portTICK_PERIOD_MS);
+                    }
+
+                    set_RGB(oldColor);
+                    light_driver_set_power(true);
+                }
+                // Освобождаем мьютекс.
+                xSemaphoreGive(blinkMutex);
+            }
+        }
+    }
+}
+
 void app_main(void)
 {
 
     main_i2c_init();
 
+    blinkMutex = xSemaphoreCreateMutex();
+    if (blinkMutex == NULL)
+        return;
+
+    // создаем очередь для сообщений для мигания светодиодом
+    blink_evt_queue = xQueueCreate(8, sizeof(uint32_t));
+    if (blink_evt_queue == 0)
+    {
+        // ESP_LOGE(TAG, "Queue was not created and must not be used");
+        return;
+    }
+    xTaskCreate(blink_task, "blink_task", 2048, NULL, 10, NULL);
 #ifdef USE_ZIGBEE
     esp_zb_platform_config_t config = {
         .radio_config = {
@@ -103,59 +158,31 @@ void app_main(void)
 
     light_driver_init(LIGHT_ON);
 
-    uint8_t mode = 1;  // 0-gesture, 1-proximity
-    uint8_t speed = 0; // 0-normal, 1-gamiing
+    uint8_t mode = GESTURE_MODE;
+    uint8_t speed = NORMAL_SPEED_MODE;
     i2c_bus_add_paj7620(&devPaj7620);
     devPaj7620.mode = mode;
     devPaj7620.speed = speed;
     devPaj7620.intPin = INT_PIN_NUM;
     esp_err_t ret = paj7620_init(&devPaj7620);
-    if (ret == ESP_OK)
+    if (ret != ESP_OK)
+        return;
+
+    if (true)
     {
-    //    xTaskCreate(gesture_task, "gesture_task", 4096, &devPaj7620, 6, NULL);
 
-        light_driver_set_green(45);
-        light_driver_set_red(0);
-        light_driver_set_blue(10);
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        uint32_t tColor = (1 << 24) + (255 << 16); // 1 red
+        xQueueSendToBack(blink_evt_queue, (void *)&tColor, (TickType_t)0);
+    
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        tColor = (2 << 24) + (255 << 8); // 2 green
+        xQueueSendToBack(blink_evt_queue, (void *)&tColor, (TickType_t)0);
+
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        tColor = (3 << 24) + 255; // 3 blue
+        xQueueSendToBack(blink_evt_queue, (void *)&tColor, (TickType_t)10);
+
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
     }
-    else
-    {
-        light_driver_set_green(0);
-        light_driver_set_red(45);
-        light_driver_set_blue(10);
-    }
-    light_driver_set_power(true);
 }
-/*
-// Обработчик кнопки BOOT (одиночный клик)
-void button_single_click_cb(void *arg, void *usr_data)
-{
-    ESP_LOGI("Button boot", "Single click");
-    take_photo();
-}
-
-// Регистрация кнопок
-void register_buttons()
-{
-    // Кнопка BOOT
-    // create gpio button
-    button_config_t gpio_btn_cfg = {
-        .type = BUTTON_TYPE_GPIO,
-        .long_press_time = CONFIG_BUTTON_LONG_PRESS_TIME_MS,   // 1500ms
-        .short_press_time = CONFIG_BUTTON_SHORT_PRESS_TIME_MS, // 180ms
-        .gpio_button_config = {
-            .gpio_num = GPIO_NUM_9, //  кнопка BOOT
-            .active_level = 0,
-        },
-    };
-
-    button_handle_t gpio_btn9 = iot_button_create(&gpio_btn_cfg);
-    if (NULL == gpio_btn9)
-    {
-        ESP_LOGE("Button boot", "Button create failed");
-    }
-
-    iot_button_register_cb(gpio_btn9, BUTTON_SINGLE_CLICK, button_single_click_cb, NULL);
-    //	iot_button_register_cb(gpio_btn, BUTTON_LONG_PRESS_START, button_long_press_cb, NULL);
-}
-    */

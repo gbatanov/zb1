@@ -25,6 +25,12 @@ extern const char *TAG;
 #define I2C_MASTER_FREQ_HZ CONFIG_I2C_MASTER_FREQ_HZ // I2C clock of PAJ7620 can run at 400 kHz max
 #define GESTURE_SENSOR_ADDR CONFIG_GESTURE_SENSOR_ADDR
 
+#define GESTURE_MODE 0
+#define PROXIMITY_MODE 1
+#define NORMAL_SPEED_MODE 0
+#define GAMING_SPEED_MODE 1
+
+
 // Gesture detection interrupt flags.
 #define PAJ_INT_FLAG1 0x43
 #define PAJ_RIGHT 0x1

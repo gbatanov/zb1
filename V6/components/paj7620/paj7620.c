@@ -200,55 +200,55 @@ const char *gesture_str(uint16_t *ges)
     switch (*ges)
     {
     case PAJ_UP:
-        light_driver_set_green(90);
-        light_driver_set_red(0);
-        light_driver_set_blue(0);
-        light_driver_set_power(true);
+ //       light_driver_set_green(90);
+ //       light_driver_set_red(0);
+ //       light_driver_set_blue(0);
+ //       light_driver_set_power(true);
 
         return "up";
         break;
 
     case PAJ_DOWN:
-        light_driver_set_green(45);
-        light_driver_set_red(0);
-        light_driver_set_blue(0);
-        light_driver_set_power(true);
+ //       light_driver_set_green(45);
+ //       light_driver_set_red(0);
+ //       light_driver_set_blue(0);
+ //       light_driver_set_power(true);
 
         return "down";
         break;
 
     case PAJ_LEFT:
-        light_driver_set_green(0);
-        light_driver_set_red(0);
-        light_driver_set_blue(45);
-        light_driver_set_power(true);
+        //     light_driver_set_green(0);
+        //     light_driver_set_red(0);
+        //     light_driver_set_blue(45);
+        //     light_driver_set_power(true);
 
         return "left";
         break;
 
     case PAJ_RIGHT:
-        light_driver_set_green(0);
-        light_driver_set_red(0);
-        light_driver_set_blue(90);
-        light_driver_set_power(true);
+        //    light_driver_set_green(0);
+        //     light_driver_set_red(0);
+        //     light_driver_set_blue(90);
+        //      light_driver_set_power(true);
 
         return "right";
         break;
 
     case PAJ_FORWARD:
-        light_driver_set_green(0);
-        light_driver_set_red(90);
-        light_driver_set_blue(0);
-        light_driver_set_power(true);
+        //    light_driver_set_green(0);
+        //    light_driver_set_red(90);
+        //    light_driver_set_blue(0);
+        //    light_driver_set_power(true);
 
         return "forward";
         break;
 
     case PAJ_BACKWARD:
-        light_driver_set_green(0);
-        light_driver_set_red(10);
-        light_driver_set_blue(0);
-        light_driver_set_power(true);
+        //    light_driver_set_green(0);
+        //    light_driver_set_red(10);
+        //    light_driver_set_blue(0);
+        //     light_driver_set_power(true);
 
         return "backward";
         break;
@@ -261,9 +261,9 @@ const char *gesture_str(uint16_t *ges)
         return "counter-clockwise";
         break;
 
-    case PAJ_WAVE:
-        return "wave";
-        break;
+ //   case PAJ_WAVE:
+ //       return "wave";
+ //       break;
 
     default:
         //        ESP_LOGI(TAG, "no gesture: %#04x", *ges);
@@ -419,7 +419,7 @@ esp_err_t paj7620_init(Dev_PAJ7620 *dev)
 
     for (int i = 0; i < reg_arr_len; i++)
     {
-        ESP_LOGI(TAG, "Initializing sensor state: {addr: 0x%#02x, val: 0x%#02x}", init_register_array[i][0], init_register_array[i][1]);
+//        ESP_LOGI(TAG, "Initializing sensor state: {addr: 0x%#02x, val: 0x%#02x}", init_register_array[i][0], init_register_array[i][1]);
         ret = i2c_register_write_byte(dev_handle, init_register_array[i][0], init_register_array[i][1]);
         if (ret != ESP_OK)
             return ret;
