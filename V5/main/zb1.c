@@ -1,4 +1,4 @@
-// 2025 GSB zb1 v5.1.1
+// 2025 GSB zb1 v5.1.2
 // Датчик температуры и давления на балкон
 
 #include "settings.h"
@@ -180,8 +180,8 @@ void app_main(void)
 #endif
 
     light_driver_init(LIGHT_DEFAULT_ON);
-    light_driver_set_green(45);
-    light_driver_set_red(10);
-    light_driver_set_blue(20);
+    light_driver_set_green(10);
+    light_driver_set_red(2);
+    light_driver_set_blue(2);
     light_driver_set_power(true);
 }

@@ -120,7 +120,7 @@ esp_err_t bmx280_init(BMP280_t *bmx280)
         error = bmx280_reset(bmx280);
 
         // Give the sensor 10 ms delay to reset.
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(20));
 
         // get chip id
         uint8_t chipid = 0;
