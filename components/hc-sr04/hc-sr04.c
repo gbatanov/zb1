@@ -14,6 +14,7 @@
 */
 #include "hc-sr04.h"
 
+
 extern const char *TAG;
 HCSR04 sonar;
 uint16_t distance = 0;
@@ -22,10 +23,10 @@ void create_sonar(int trigPin, int echoPin)
 {
     sonar.ECHO_PIN = echoPin;
     sonar.TRIG_PIN = trigPin;
-    gpio_pad_select_gpio(sonar.ECHO_PIN);
+    esp_rom_gpio_pad_select_gpio(sonar.ECHO_PIN);
     gpio_set_direction(sonar.ECHO_PIN, GPIO_MODE_INPUT); // ECHO pin - input
                                                          //    gpio_set_pull_mode(sonar.ECHO_PIN, GPIO_PULLUP_ONLY);
-    gpio_pad_select_gpio(sonar.TRIG_PIN);
+    esp_rom_gpio_pad_select_gpio(sonar.TRIG_PIN);
     gpio_set_direction(sonar.TRIG_PIN, GPIO_MODE_OUTPUT); // TRIG pin - output
 }
 

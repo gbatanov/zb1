@@ -7,7 +7,7 @@
 #include "esp_log.h"
 
 void timer_callback(TimerHandle_t pxTimer);
-void create_timer();
+void create_timer(uint32_t *pvTimerID);
 void start_timer();
 
 #endif

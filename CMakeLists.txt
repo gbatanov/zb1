@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(zb1)
+project(zb1 VERSION 1.1.1)
+
