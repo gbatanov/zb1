@@ -34,7 +34,7 @@ device_params_t client_params; // ??
 // Task for update attribute value
 // Автоматически буду отправлять редко, чисто для информации
 // Реальную отправку делать при изменении параметра сразу.
-void update_attribute()
+void update_attribute(void *attr)
 {
     while (true)
     {
