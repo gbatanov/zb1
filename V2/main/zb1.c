@@ -107,9 +107,9 @@ void app_main(void)
     xTaskCreate(update_attribute, "Update_attribute_value", 4096, NULL, 5, NULL);
 
 #endif
-    gpio_pad_select_gpio(GPIO_NUM_13);
+    esp_rom_gpio_pad_select_gpio(GPIO_NUM_13);
     gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT); // GPIO13 - на Реле2 Коридор
-    gpio_pad_select_gpio(GPIO_NUM_14);
+    esp_rom_gpio_pad_select_gpio(GPIO_NUM_14);
     gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT); // GPIO14 - на Реле3 Прихожая
 
 // xTaskCreate(TaskFunction, NameFunction, StackDepth, void* Parameters, Priority, TaskHandle)

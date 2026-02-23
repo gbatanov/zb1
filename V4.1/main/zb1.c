@@ -97,9 +97,9 @@ void app_main(void)
 
 #endif
 
-    gpio_pad_select_gpio(ECHO_PIN_NUM);
+    esp_rom_gpio_pad_select_gpio(ECHO_PIN_NUM);
     gpio_set_direction(ECHO_PIN_NUM, GPIO_MODE_INPUT); // ECHO pin - input
-    gpio_pad_select_gpio(TRIG_PIN_NUM);
+    esp_rom_gpio_pad_select_gpio(TRIG_PIN_NUM);
     gpio_set_direction(TRIG_PIN_NUM, GPIO_MODE_OUTPUT); // TRIG pin - output
 
     timer_init();

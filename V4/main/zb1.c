@@ -93,9 +93,9 @@ void app_main(void)
 
 #endif
 
-    gpio_pad_select_gpio(ECHO_PIN_NUM);
+    esp_rom_gpio_pad_select_gpio(ECHO_PIN_NUM);
     gpio_set_direction(ECHO_PIN_NUM, GPIO_MODE_INPUT); // ECHO pin - input
-    gpio_pad_select_gpio(RELAY_PIN_NUM);
+    esp_rom_gpio_pad_select_gpio(RELAY_PIN_NUM);
     gpio_set_direction(RELAY_PIN_NUM, GPIO_MODE_OUTPUT); // ECHO pin - input
 
 
