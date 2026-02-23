@@ -92,9 +92,9 @@ void hall_light_control(uint8_t value)
 
 void app_main(void)
 {
-    gpio_pad_select_gpio(GPIO_NUM_13);
+   rom_gpio_pad_select_gpio(GPIO_NUM_13);
     gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT); // GPIO13 - на Реле2 Коридор
-    gpio_pad_select_gpio(GPIO_NUM_14);
+   rom_gpio_pad_select_gpio(GPIO_NUM_14);
     gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT); // GPIO14 - на Реле3 Прихожая
 
     // При перезапуске выключаем реле
